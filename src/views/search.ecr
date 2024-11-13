@@ -1,0 +1,87 @@
+<main class="row m-4">
+    <% paged_posts.each do |post| %>
+        <a class="col-6 col-md-2" href="/post/<%= post.id %>?q=<%= search_text %>">Post #<%= post.id %></a>
+    <% end %>
+    <nav aria-label="Search results pages">
+        <ul class="pagination position-absolute bottom-0 start-50 my-4 translate-middle-x">
+            <li class="page-item">
+                <a class="page-link" href="#" aria-label="Previous" id="paginator-p">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+                </li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-0">1</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-1">7</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-2">8</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-3">9</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-4">10</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-5">11</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-6">12</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-7">13</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-8">100</a></li>
+                <li class="page-item">
+                <a class="page-link" href="#" aria-label="Next" id="paginator-n">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>          
+        </ul>
+    </nav>
+    <% unless qb.unknown_tags.empty? %>
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div class="toast text-bg-warning show" role="alert" aria-live="assertive" aria-atomic="true" id="warning-toast">
+            <div class="toast-header">
+                <strong class="me-auto">Ignoring unknown tags</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                <%= qb.unknown_tags.join(", ") %>
+            </div>
+        </div>
+    </div>
+    <% end %>
+    <script type="module">
+        const url_params = new URLSearchParams(window.location.search);
+        const search_text = url_params.get('q');
+        const total_pages = <%= total_pages %>;
+        const current_page = Number(url_params.get('p'));
+        const paginator_link_base = `/search?q=${search_text}&p=`
+
+        let pos_of_current_page = 4;
+        if (current_page < pos_of_current_page) {
+            pos_of_current_page = pos_of_current_page + (current_page - pos_of_current_page);
+        }
+        if (total_pages - 1 - current_page < pos_of_current_page) {
+            pos_of_current_page = 8 - (total_pages - 1 - current_page);
+        }
+
+        for (let index = 0; index <= 8; index++) {
+            let paginator_element = document.getElementById(`paginator-${index}`);
+            let page = current_page + (index - pos_of_current_page);
+            if (page == current_page) {
+                paginator_element.classList.add("active");
+            }
+            if (index == 0) {
+                paginator_element.innerText = "1";
+                paginator_element.href = paginator_link_base + "0";
+            } else if (index == 8) {
+                paginator_element.innerText = total_pages;
+                paginator_element.href = paginator_link_base + (total_pages - 1);
+            } else {
+                paginator_element.innerText = page + 1;
+                paginator_element.href = paginator_link_base + page;
+            }
+            if ((index + 1) > total_pages) {
+                paginator_element.hidden = true;
+            }
+        }
+
+        document.getElementById("paginator-p").href = paginator_link_base + (current_page - 1)
+        document.getElementById("paginator-n").href = paginator_link_base + (current_page + 1)
+
+        if ((current_page - 1) < 0) {
+            document.getElementById("paginator-p").classList.add("disabled");
+        }
+        if ((current_page + 1) >= total_pages) {
+            document.getElementById("paginator-n").classList.add("disabled");
+        }
+    </script>
+</main>

@@ -1,0 +1,10 @@
+/docs/
+/lib/
+/bin/
+/.shards/
+*.dwarf
+
+whitelist.davbooru
+blacklist.davbooru
+davbooru.db
+/backup/

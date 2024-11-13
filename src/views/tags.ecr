@@ -1,0 +1,122 @@
+<style>
+    .edit-btn {
+        opacity: 0;
+    }
+
+    tr:hover .edit-btn {
+        opacity: 1;
+    }
+</style>
+<main class="m-4">
+    <div class="row mb-2">
+        <div class="col position-relative">
+            <button class="btn btn-success position-relative start-50 translate-middle-x" data-bs-toggle="modal" data-bs-target="#tags-modal" onclick="update_modal(null, null, '', 1, '')">New tag</button>
+        </div>
+    </div>
+    <div class="table-responsive-md">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Parent</th>
+                    <th scope="col">Category</th>
+                    <th scope="col">Name</th>
+                    <th scope="col" colspan="2">Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% tags.each do |tag| %>
+                <tr id="tag-<%= tag.id %>">
+                    <td><%= tag.id %></td>
+                    <td><%= tag.parent_id ? "<a href=\"#tag-#{tag.parent_id}\">#{tag.parent_id}</a>" : "-"%></td>
+                    <td style="color: <%= tag.color%>"><%= tag.category_name%></td>
+                    <th scope="row" style="color: <%= tag.color%>"><%= tag.name %></th>
+                    <td><%= tag.description %></td>
+                    <td>
+                        <button class="btn btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#tags-modal" onclick="update_modal(<%= tag.id %>, <%= tag.parent_id || "null" %>, `<%= tag.name %>`, <%= tag.category_id %>, `<%= tag.description %>`)">Edit</button>
+                        <button class="btn btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#tags-modal" onclick="update_modal(null, <%= tag.id || "null" %>, ``, <%= tag.category_id %>, ``)">Add child</button>
+                    </td>
+                </tr>
+                <% end %>
+            </tbody>
+        </table>
+    </div>
+    <div class="modal fade" id="tags-modal" tabindex="-1" aria-labelledby="tags-modal-label" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen-sm-down">
+            <div class="modal-content">
+                <form id="modal-form" action="/tags/" method="POST" class="needs-validation" novalidate>
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="tags-modal-label">Add/edit tag</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-2 g-2">
+                            <div class="col-6">
+                                <label for="tags-id">ID</label>
+                                <input type="number" class="form-control" name="id" id="tags-id" placeholder="New tag">
+                            </div>
+                            <div class="col-6">
+                                <label for="tags-id">Parent ID</label>
+                                <input type="number" class="form-control" name="parent-id" id="tags-parent-id" placeholder="None">
+                            </div>
+                            <div class="col-12">
+                                <label for="tags-name">Name</label>
+                                <input type="text" class="form-control form-control-lg" name="name" id="tags-name" pattern="^[^-][a-z0-9!^*\(\)_.?:;<>\/=\-]+$" required>
+                                <div class="invalid-feedback">
+                                    Only alphanumeric and specific special characters are allowed. Can't begin with a "-".
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label for="tags-category" class="form-label">Category</label>
+                                <select class="form-select" aria-label="Default select example" name="category" id="tags-category">
+                                    <% categories.each_with_index do |cat, i| %>
+                                    <option style="color: <%= Tag::COLORS[i] %>" value="<%= i + 1 %>"><%= cat %></option>
+                                    <% end %>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label for="tags-text-area" class="form-label">Description</label>
+                                <textarea name="description" class="form-control" id="tags-description" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+        const modal_id = document.getElementById("tags-id"),
+            modal_parent = document.getElementById("tags-parent-id"),
+            modal_name = document.getElementById("tags-name"),
+            modal_cat = document.getElementById("tags-category"),
+            modal_desc = document.getElementById("tags-description"),
+            form = document.getElementById("modal-form");
+
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+
+            form.classList.add('was-validated')
+        }, false);
+
+        modal_name.onchange = () => {
+           
+           
+           
+            modal_name.value = modal_name.value.toLowerCase().replaceAll(" ", "_");
+        }
+
+        function update_modal(id, parent_id, name, category_id, description) {
+            modal_id.value = id;
+            modal_parent.value = parent_id;
+            modal_name.value = name;
+            modal_desc.value = description;
+            modal_cat.value = category_id
+        }
+    </script>
+</main>
