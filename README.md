@@ -1,27 +1,21 @@
-# davbooru
+# DAVbooru
 
-TODO: Write a description here
+DAVbooru is a simple danbooru-style imageboard for all your private media available over WebDAV.
 
 ## Installation
 
-TODO: Write installation instructions here
+1. Create a new account for DAVbooru on your WebDAV-compatible cloud storage provider.
+2. Share all necassary media with the DAVbooru user.
+- Make sure the media will be available on the same path as the end user!
+3. Configure whitelist and blacklist.
+  - Create `whitelist.davbooru` and `blacklist.davbooru` in the same directory as the executable.
+  - Specify the paths you want to index over WebDAV in the whitelist, and any phrases you want toexclude from indexing in the blacklist, one path per line, no special syntax.
+4. Launch DAVbooru and give it the correct credentials.
 
 ## Usage
 
-TODO: Write usage instructions here
-
-## Development
-
-TODO: Write development instructions here
-
-## Contributing
-
-1. Fork it (<https://github.com/your-github-user/davbooru/fork>)
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create a new Pull Request
-
-## Contributors
-
-- [your-name-here](https://github.com/your-github-user) - creator and maintainer
+Basic command:
+```
+davbooru -u <username/email> -p <password> 
+```
+For more details run `davbooru --help`.
