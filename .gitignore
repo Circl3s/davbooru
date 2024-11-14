@@ -6,5 +6,8 @@
 
 whitelist.davbooru
 blacklist.davbooru
+
 davbooru.db
+davbooru.db-shm
+davbooru.db-wal
 /backup/

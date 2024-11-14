@@ -37,10 +37,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script>
         const url_params = new URLSearchParams(window.location.search);
-        const search_text = url_params.get('q');
+        const search_text = url_params.get('q') ?? "";
 
         document.getElementById("search-box").value = search_text;
-        document.getElementById("random").href += `?q=${search_text}`;
+        document.getElementById("random").href += `?q=${encodeURIComponent(search_text)}`;
 
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))

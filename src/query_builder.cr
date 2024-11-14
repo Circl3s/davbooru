@@ -1,11 +1,10 @@
-require "uri"
-
 class QueryBuilder
     @db : DB::Database
     getter text : String
     property page : Int64
     @sql : String = ""
     getter unknown_tags = [] of String
+    getter valid_tags = [] of String
     property sorting = "posts.id DESC"
     property path_filter : String?
 
@@ -26,10 +25,16 @@ class QueryBuilder
         "score" => "posts.kudos DESC",
         "score:desc" => "posts.kudos DESC",
         "score:asc" => "posts.kudos ASC",
-        "random" => "RANDOM"
+        "random" => "RANDOM()"
     }
     
     def initialize(@db, @text = "", @page = 0)
+        # Extract path filter
+        raw_path_filter = (@text.match(/path:"([^"]+)"/) || [] of String)[1]?
+        if raw_path_filter
+            @valid_tags << ((@text.match(/path:"([^"]+)"/) || [] of String)[0]? || "")
+            @path_filter = URI.encode_path(raw_path_filter)
+        end
     end
 
     def text=(@text)
@@ -54,29 +59,17 @@ class QueryBuilder
         selects = [] of String
         negative_selects = [] of String
 
-        valid_tag_names = [] of String
-
-        working_text = @text
-
-        # Extract path filter
-        puts working_text
-        raw_path_filter = (working_text.match(/path:"([^"]+)"/) || [] of String)[1]?
-        if raw_path_filter
-            puts raw_path_filter
-            valid_tag_names << ((working_text.match(/path:"([^"]+)"/) || [] of String)[0]? || "")
-            @path_filter = URI.encode_path(raw_path_filter)
-            puts @path_filter
-            working_text = working_text.sub(/path:"([^"]+)"/, "")
-        end
+        working_text = @text.sub(/path:"([^"]+)"/, "")
 
         tag_names = working_text.strip.split(" ")
         tag_names.each do |name|
-            next if name.empty?
+            next if name.blank?
             if name.starts_with?("sort:")
                 begin
-                    @sorting = SORTING_TYPES[name.lstrip("sort:")]
-                    valid_tag_names << name
-                rescue
+                    @sorting = SORTING_TYPES[name[5..]]
+                    @valid_tags << name
+                rescue e
+                    puts e
                     @unknown_tags << name
                 end
                 next
@@ -98,7 +91,7 @@ class QueryBuilder
                 @unknown_tags << name
                 next
             else
-                valid_tag_names << name
+                @valid_tags << name
                 ctes << 
 "hierarchy_#{tag.id} AS (
     SELECT *
@@ -122,12 +115,11 @@ GROUP BY posts.id"
             end
         end
 
-        if selects.empty?
-            selects << "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id"
+        if selects.empty? || @path_filter
+            selects << "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id#{@path_filter.nil? ? "" : " WHERE url LIKE ?"} GROUP BY posts.id"
         end
 
-        @text = valid_tag_names.join(" ")
-        @sql = "#{ctes.empty? ? "" : "WITH RECURSIVE "}#{ctes.join(", ")} #{selects.join(" INTERSECT ")}#{@path_filter.nil? ? "" : " WHERE url LIKE ?"}#{negative_selects.empty? ? "" : " EXCEPT "}#{negative_selects.join(" EXCEPT ")}"
+        @sql = "#{ctes.empty? ? "" : "WITH RECURSIVE "}#{ctes.join(", ")} #{selects.join(" INTERSECT ")}#{negative_selects.empty? ? "" : " EXCEPT "}#{negative_selects.join(" EXCEPT ")}"
         @@cache << self
         return @sql + page_sql
     end

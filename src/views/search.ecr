@@ -1,6 +1,6 @@
 <main class="row m-4">
     <% paged_posts.each do |post| %>
-        <a class="col-6 col-md-2" href="/post/<%= post.id %>?q=<%= search_text %>">Post #<%= post.id %></a>
+        <a class="col-6 col-md-2" href="/post/<%= post.id %>?q=<%= search_param %>">Post #<%= post.id %></a>
     <% end %>
     <nav aria-label="Search results pages">
         <ul class="pagination position-absolute bottom-0 start-50 my-4 translate-middle-x">
@@ -9,15 +9,15 @@
                     <span aria-hidden="true">&laquo;</span>
                 </a>
                 </li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-0">1</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-1">7</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-2">8</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-3">9</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-4">10</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-5">11</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-6">12</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-7">13</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-8">100</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-1" hidden>1</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-2" hidden>7</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-3" hidden>8</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-4" hidden>9</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-5" hidden>10</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-6" hidden>11</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-7" hidden>12</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-8" hidden>13</a></li>
+                <li class="page-item"><a class="page-link" href="#" id="paginator-9" hidden>100</a></li>
                 <li class="page-item">
                 <a class="page-link" href="#" aria-label="Next" id="paginator-n">
                     <span aria-hidden="true">&raquo;</span>
@@ -43,34 +43,36 @@
         const search_text = url_params.get('q');
         const total_pages = <%= total_pages %>;
         const current_page = Number(url_params.get('p'));
-        const paginator_link_base = `/search?q=${search_text}&p=`
+        const current_visual_page = current_page + 1;
+        const paginator_link_base = `/search?q=${encodeURIComponent(search_text)}&p=`
 
-        let pos_of_current_page = 4;
-        if (current_page < pos_of_current_page) {
-            pos_of_current_page = pos_of_current_page + (current_page - pos_of_current_page);
+        let max_paginators = Math.min(9, total_pages);
+
+        let pos_of_current_page = 5;
+        if (current_visual_page < pos_of_current_page) {
+            pos_of_current_page = pos_of_current_page + (current_visual_page - pos_of_current_page);
         }
-        if (total_pages - 1 - current_page < pos_of_current_page) {
-            pos_of_current_page = 8 - (total_pages - 1 - current_page);
+        if (total_pages - current_visual_page < pos_of_current_page) {
+            pos_of_current_page = max_paginators - (total_pages - current_visual_page);
         }
 
-        for (let index = 0; index <= 8; index++) {
+        for (let index = 1; index <= max_paginators; index++) {
             let paginator_element = document.getElementById(`paginator-${index}`);
-            let page = current_page + (index - pos_of_current_page);
-            if (page == current_page) {
+            paginator_element.hidden = false;
+
+            let page = current_visual_page + (index - pos_of_current_page);
+            if (page == current_visual_page) {
                 paginator_element.classList.add("active");
             }
-            if (index == 0) {
+            if (index == 1) {
                 paginator_element.innerText = "1";
                 paginator_element.href = paginator_link_base + "0";
-            } else if (index == 8) {
+            } else if (index == max_paginators) {
                 paginator_element.innerText = total_pages;
                 paginator_element.href = paginator_link_base + (total_pages - 1);
             } else {
-                paginator_element.innerText = page + 1;
-                paginator_element.href = paginator_link_base + page;
-            }
-            if ((index + 1) > total_pages) {
-                paginator_element.hidden = true;
+                paginator_element.innerText = page;
+                paginator_element.href = paginator_link_base + (page - 1);
             }
         }
 

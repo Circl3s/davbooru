@@ -3,6 +3,7 @@ require "kemal"
 require "kemal-basic-auth"
 require "option_parser"
 require "sqlite3"
+require "uri"
 
 require "./query_builder"
 require "./indexer"
@@ -19,8 +20,8 @@ module Davbooru
   tag_mode = false
   username = ""
   password = ""
+  base_url = ""
   nsfw = false
-  tag_mode = false
 
   @@total_media = nil
 
@@ -33,7 +34,7 @@ module Davbooru
   end
 
   class ImportantAuthHandler < Kemal::BasicAuth::Handler
-    only ["/tags"]
+    only ["/tags/edit"]
 
     def call(context)
       return call_next(context) unless only_match?(context)
@@ -48,25 +49,13 @@ module Davbooru
   parser = OptionParser.new do |parser|
     parser.banner = "Usage: davbooru [command] [arguments]"
     parser.on("index", "Index new files over WebDAV, then quit immediately.") { only_index = true }
-    parser.on("tag", "Subcommand to manage tags.") do
-      tag_mode = true;
-      parser.banner = "Usage: davbooru tag [command] [arguments]"
-      parser.on("add", "Add a new tag.") do
-
-      end
-      parser.on("modify", "Modify and existing tag.") do
-
-      end
-      parser.on("delete", "Delete and existing tag.") do
-
-      end
-    end
     parser.on("--no-indexing", "Don't index new files over WebDAV.") do
       dont_index = true
       puts "Launching without scheduled indexing. New files won't be accessible on DAVbooru."
     end
     parser.on("--nsfw", "Changes some things to be specifically NSFW.") { nsfw = true }
     parser.on("-u", "--username=NAME", "Set WebDADV username used to index media.") { |name| username = name }
+    parser.on("--url=URL", "Base URL of the WebDAV server.") { |url| base_url = url }
     parser.on("-p", "--password=PASS", "Set WebDADV password used to index media.") { |pass| password = pass }
     parser.on("-h", "--help", "Show this help.") do
       puts parser
@@ -82,14 +71,14 @@ module Davbooru
     exit(1)
   end
 
-  if (username == "" || password == "")
-    STDERR.puts "Provide WebDAV username and password. Exiting..."
+  if (username == "" || password == "" || base_url == "")
+    STDERR.puts "Provide WebDAV username, password, and URL. Exiting..."
     puts parser
     exit(1)
   end
 
-  db = DB.open("sqlite3://./davbooru.db")
-  indexer = Indexer.new(db, "https://seafile.nil.services/seafdav/", username, password)
+  db = DB.open("sqlite3://./davbooru.db?journal_mode=wal&synchronous=normal&foreign_keys=true")
+  indexer = Indexer.new(db, base_url, username, password)
 
   get "/" do
     site_title = "DAVbooru"
@@ -99,11 +88,10 @@ module Davbooru
 
   get "/search" do |env|
     search_string = env.params.query["q"]
+    search_param = URI.encode_www_form(search_string)
     page = env.params.query["p"].to_i64
     posts = [] of Post
     qb = QueryBuilder.new(db, search_string, page.to_i64)
-    puts qb.sql
-    puts qb.path_filter
     if qb.path_filter
       db.query qb.sql, "%#{qb.path_filter}%" do |rs|
         rs.each do
@@ -117,9 +105,8 @@ module Davbooru
         end
       end
     end
-    search_text = qb.text
     total_posts = posts.size
-    site_title = "DAVbooru | Search: #{search_text}"
+    site_title = "DAVbooru | Search: #{search_string}"
     if total_posts == 0
       message = "No posts found matching current criteria. :("
       back_url = "/search?q=&p=0"
@@ -159,10 +146,11 @@ module Davbooru
     post_id = env.params.url["id"]
     back_url = "/post/#{post_id}"
     tag_string = env.params.body["tags"]
-    tag_names = tag_string.split(" ")
+    tag_names = tag_string.strip.split(" ")
     tag_ids = [] of Int64
     invalid_tags = [] of String
     tag_names.each do |name|
+      next if name.blank?
       tag = Tag.cache.values.find {|t| t.name == name}
       unless tag
         db.query "SELECT tags.*, categories.name FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.name = ? LIMIT 1", name.strip do |rs|
@@ -179,11 +167,11 @@ module Davbooru
       end
     end
 
-    db.exec "DELETE FROM post_tags WHERE post_id = #{post_id}"
-
     db.transaction do |t|
+      t.connection.exec "DELETE FROM post_tags WHERE post_id = #{post_id}"
+
       tag_ids.each do |id|
-        t.connection.exec "INSERT INTO post_tags VALUES(#{post_id}, #{id})"
+        t.connection.exec "INSERT OR IGNORE INTO post_tags VALUES(#{post_id}, #{id})"
       end
       t.commit
     end
@@ -201,15 +189,25 @@ module Davbooru
   get "/random" do |env|
     begin
       search_string = env.params.query["q"]
+      search_param = URI.encode_www_form(search_string)
       posts = [] of Post
       qb = QueryBuilder.new(db, search_string, 1)
-      db.query qb.sql do |rs|
-        rs.each do
-          posts << Post.from_row(rs)
+      if qb.path_filter
+        db.query qb.sql, "%#{qb.path_filter}%" do |rs|
+          rs.each do
+            posts << Post.from_row(rs)
+          end
+        end
+      else
+        db.query qb.sql do |rs|
+          rs.each do
+            posts << Post.from_row(rs)
+          end
         end
       end
-      env.redirect "/post/#{posts.sample.id}?q=#{search_string}"
-    rescue
+      env.redirect "/post/#{posts.sample.id}?q=#{search_param}"
+    rescue e
+      puts "RANDOM ERROR: #{e}"
       env.redirect "/post/#{rand(get_total(db))}"
     end
   end
@@ -233,7 +231,7 @@ module Davbooru
     render "src/views/tags.ecr", "src/views/layout.ecr"
   end
 
-  post "/tags" do |env|
+  post "/tags/edit" do |env|
     back_url = "/tags"
     begin
       tag_id = env.params.body["id"]
