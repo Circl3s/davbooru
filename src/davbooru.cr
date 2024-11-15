@@ -22,6 +22,7 @@ module Davbooru
   password = ""
   base_url = ""
   nsfw = false
+  thumbnails = true
 
   class ImportantAuthHandler < Kemal::BasicAuth::Handler
     only ["/tags/edit", "/post/:id/edit"]
@@ -43,6 +44,7 @@ module Davbooru
       dont_index = true
       puts "Launching without scheduled indexing. New files won't be accessible on DAVbooru."
     end
+    parser.on("--no-thumbnails", "Disable thumbnail generation.") { thumbnails = false }
     parser.on("--nsfw", "Changes some things to be specifically NSFW.") { nsfw = true }
     parser.on("-u", "--username=NAME", "Set WebDADV username used to index media.") { |name| username = name }
     parser.on("--url=URL", "Base URL of the WebDAV server.") { |url| base_url = url }
@@ -77,6 +79,7 @@ module Davbooru
   end
 
   get "/search" do |env|
+    show_favourites = false
     search_string = env.params.query["q"]
     search_param = URI.encode_www_form(search_string)
     page = env.params.query["p"].to_i64
@@ -128,6 +131,9 @@ module Davbooru
         end
       end
       site_title = "DAVbooru | Post ##{post.id}"
+      if thumbnails && !File.exists?("./public/thumb/#{post.id}.webp")
+        indexer.generate_thumbnail(post.id, post.url)
+      end
       render "src/views/post.ecr", "src/views/layout.ecr"
     end
   end
@@ -178,8 +184,8 @@ module Davbooru
 
   get "/post/:id/thumbnail" do |env|
     id = env.params.url["id"]
-    url = env.params.query["url"]
-    unless File.exists?("./public/thumb/#{id}.webp")
+    url = env.params.query["url"]? || ""
+    if thumbnails && !File.exists?("./public/thumb/#{id}.webp")
       begin
         indexer.generate_thumbnail(id, url)
       rescue
@@ -187,6 +193,16 @@ module Davbooru
       end
     end
     env.redirect "/thumb/#{id}.webp"
+  end
+
+  get "/favourites" do |env|
+    show_favourites = true
+    paged_posts = [] of Post
+    qb = QueryBuilder.new(db, "", 0)
+    total_pages = 0
+    search_param = ""
+    site_title = "DAVbooru | Favourites"
+    render "src/views/search.ecr", "src/views/layout.ecr"
   end
 
   get "/random" do |env|

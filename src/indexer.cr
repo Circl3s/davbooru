@@ -33,7 +33,9 @@ class Indexer
     end
 
     def run
-        File.copy("./davbooru.db", "./backup/davbooru.db-#{@backup_number}")
+        File.copy("./davbooru.db", "./backup/davbooru.db.#{@backup_number}")
+        File.copy("./davbooru.db-shm", "./backup/davbooru.db-shm.#{@backup_number}")
+        File.copy("./davbooru.db-wal", "./backup/davbooru.db-wal.#{@backup_number}")
         puts "Starting indexing..."
         headers = HTTP::Headers.new.add("Authorization", "Basic #{Base64.urlsafe_encode(@username + ":" + @password)}")
         @whitelist.each do |path|

@@ -1,6 +1,7 @@
-<main class="row m-4">
-    <aside class="col-sm-2">
-            <h3>Tags</h3>
+<main class="row m-4 justify-content-center d-flex">
+    <aside class="col-md-2 order-last order-md-first">
+        <button type="button" class="btn my-4" id="fav">Favourite</button>
+        <h3>Tags</h3>
         </div>
         <% last_cat = "" %>
         <% tag_names = [] of String %>
@@ -15,16 +16,15 @@
             <% last_cat = tag.category_name %>
         <% end %>
         </ul>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tags-modal">Edit tags</button>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tags-modal" id="edit">Edit tags</button>
         <h4 class="my-4"><%= nsfw ? "Cum counter:" : "Kudos:"%> <span id="kudos"><%= post.kudos %></span></h4>
     </aside>
-    <div class="col-sm-10">
+    <div class="col-md-10 order-first order-md-last">
         <div class="container-fluid position-relative" style="height: 80vh; max-width: 100%;">
-            <% post = post.not_nil! %>
             <% if post.type.includes? "video" %>
-            <video class="object-fit-contain h-100 w-100" src="<%= post ? post.url : "" %>" controls></video>
+            <video class="object-fit-contain h-100 w-100" src="<%= post.url %>" controls id="vid"></video>
             <% elsif post.type.includes? "image" %>
-            <img class="object-fit-contain h-100 w-100" src="<%= post ? post.url : "" %>" id="img">
+            <img class="object-fit-contain h-100 w-100" src="<%= post.url %>" id="img">
             <% else %>
             <h1>Unknown media, sorry. :(</h1>
             <% end %>
@@ -33,7 +33,7 @@
     <div class="modal fade" id="tags-modal" tabindex="-1" aria-labelledby="tags-modal-label" aria-hidden="true">
         <div class="modal-dialog modal-fullscreen-sm-down">
             <div class="modal-content">
-                <form action="/post/<%= post ? post.id : 0%>/edit" method="POST" id="tags-form">
+                <form action="/post/<%= post.id %>/edit" method="POST" id="tags-form">
                     <div class="modal-header">
                         <h1 class="modal-title fs-5" id="tags-modal-label">Edit tags</h1>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -41,7 +41,7 @@
                     <div class="modal-body">
                         <div class="my-2">
                             <label for="tags-text-area" class="form-label">Tag names (separated by spaces)</label>
-                            <textarea name="tags" class="form-control" id="tags-text-area" rows="3"><%= tag_names.join(" ") %> </textarea>
+                            <textarea name="tags" class="form-control" id="tags-text-area" rows="3"> <%= tag_names.join(" ") %></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -52,19 +52,57 @@
         </div>
     </div>
     <script>
+        const tag_edit = document.getElementById("tags-text-area");
+        const fav_btn = document.getElementById("fav");
+
+        let favs = localStorage.getItem("favourites")?.split(";") ?? [];
+        let is_favourite = favs.includes("<%= post.id %>");
+
+        <% if post.type.includes? "video" %>
+        const vid = document.getElementById("vid");
+
+        let default_volume = Number(localStorage.getItem("volume") ?? "0.2"); 
+        vid.volume = default_volume;
+
+        vid.onvolumechange = () => {
+            localStorage.setItem("volume", vid.volume);
+        }
+        <% end %>
+
+        if (is_favourite) {
+            fav_btn.classList.add("btn-danger");
+            fav_btn.innerText = "Unfavourite";
+            fav_btn.onclick = () => {
+                favs = favs.filter(i => i != "<%= post.id %>");
+                localStorage.setItem("favourites", favs.join(";"));
+                window.location.reload();
+            }
+        } else {
+            fav_btn.classList.add("btn-success");
+            fav_btn.onclick = () => {
+                favs.push("<%= post.id %>");
+                localStorage.setItem("favourites", favs.join(";"));
+                window.location.reload();
+            }
+        }
+
         // Trick browser into authorization
         document.getElementById("img")?.addEventListener("error", (ev) => {
             let fake_video = document.createElement("video");
             fake_video.onerror = () => {
                 location.reload();
             }
-            fake_video.src = "<%= post ? post.url : "" %>";
+            fake_video.src = "<%= post.url %>";
             fake_video.hidden = true;
 
             document.appendChild(fake_video);
         });
 
-        document.getElementById("tags-text-area").onkeyup = (e) => {
+        document.getElementById("tags-modal").addEventListener("shown.bs.modal", (e) => {
+            tag_edit.focus();
+        });
+
+        tag_edit.onkeydown = (e) => {
             e = e || event;
             if (e.keyCode === 13) {
                 e.preventDefault();

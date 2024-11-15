@@ -1,6 +1,8 @@
-<main class="row m-4 g-4">
-    <% paged_posts.each do |post| %>
-        <a class="col-6 col-md-2" style="max-height: 180px;" href="/post/<%= post.id %>?q=<%= search_param %>"><img class="object-fit-contain h-100 w-100" src="<%= post.thumbnail %>" alt="Post #<%= post.id %>"></a>
+<main class="row m-4 g-4" id="main">
+    <% unless show_favourites%>
+        <% paged_posts.each do |post| %>
+            <a class="col-6 col-md-2" style="max-height: 180px;" href="/post/<%= post.id %>?q=<%= search_param %>"><img class="object-fit-contain h-100 w-100" src="<%= post.thumbnail %>" alt="Post #<%= post.id %>"></a>
+        <% end %>
     <% end %>
     <nav aria-label="Search results pages">
         <ul class="pagination position-fixed bottom-0 start-50 my-4 translate-middle-x">
@@ -39,12 +41,38 @@
     </div>
     <% end %>
     <script type="module">
+        let favs = localStorage.getItem("favourites")?.split(";").reverse() ?? [];
+        favs = favs.filter(i => i != "");
+
         const url_params = new URLSearchParams(window.location.search);
         const search_text = url_params.get('q');
+
+        <% if show_favourites %>
+        const total_pages = Math.ceil(favs.length / <%= QueryBuilder::DEFAULT_PAGE_SIZE %>);
+        <% else %>
         const total_pages = <%= total_pages %>;
+        <% end %>
+
         const current_page = Number(url_params.get('p'));
         const current_visual_page = current_page + 1;
+
+        <% if show_favourites %>
+        const paginator_link_base = `/favourites?p=`
+        <% else %>
         const paginator_link_base = `/search?q=${encodeURIComponent(search_text)}&p=`
+        <% end %>
+
+        let paginated_favs = favs.slice(<%= QueryBuilder::DEFAULT_PAGE_SIZE %> * current_page, <%= QueryBuilder::DEFAULT_PAGE_SIZE %> * (current_page + 1))
+
+        <% if show_favourites %>
+        let main = document.getElementById("main");
+        paginated_favs.forEach(fav => {
+            main.innerHTML += `<a class="col-6 col-md-2" style="max-height: 180px;" href="/post/${fav}"><img class="object-fit-contain h-100 w-100" src="/post/${fav}/thumbnail" alt="Post #${fav}"></a>`
+        });
+        if (favs.length == 0) {
+            main.innerHTML += `<h1>No favourites. :(</h1>`
+        }
+        <% end %>
 
         let max_paginators = Math.min(9, total_pages);
 
