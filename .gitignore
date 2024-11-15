@@ -11,3 +11,4 @@ davbooru.db
 davbooru.db-shm
 davbooru.db-wal
 /backup/
+/public/thumb/

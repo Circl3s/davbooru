@@ -1,9 +1,9 @@
-<main class="row m-4">
+<main class="row m-4 g-4">
     <% paged_posts.each do |post| %>
-        <a class="col-6 col-md-2" href="/post/<%= post.id %>?q=<%= search_param %>">Post #<%= post.id %></a>
+        <a class="col-6 col-md-2" style="max-height: 180px;" href="/post/<%= post.id %>?q=<%= search_param %>"><img class="object-fit-contain h-100 w-100" src="/post/<%= post.id %>/thumbnail" alt="Post #<%= post.id %>"></a>
     <% end %>
     <nav aria-label="Search results pages">
-        <ul class="pagination position-absolute bottom-0 start-50 my-4 translate-middle-x">
+        <ul class="pagination position-fixed bottom-0 start-50 my-4 translate-middle-x">
             <li class="page-item">
                 <a class="page-link" href="#" aria-label="Previous" id="paginator-p">
                     <span aria-hidden="true">&laquo;</span>

@@ -11,7 +11,7 @@ class QueryBuilder
     @@cache = [] of QueryBuilder
 
     MAX_QUERY_CACHE = 128
-    DEFAULT_PAGE_SIZE = 40
+    DEFAULT_PAGE_SIZE = 24
     SORTING_TYPES = {
         "id" => "posts.id DESC",
         "id:desc" => "posts.id DESC",

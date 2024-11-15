@@ -23,18 +23,8 @@ module Davbooru
   base_url = ""
   nsfw = false
 
-  @@total_media = nil
-
-  def get_total(db : DB::Database, force_update : Bool = false) : Int64
-    if @@total_media == nil
-      @@total_media = (db.scalar "SELECT COUNT(id) FROM posts").as(Int64) || -1_i64
-    end
-  
-    return @@total_media.not_nil!
-  end
-
   class ImportantAuthHandler < Kemal::BasicAuth::Handler
-    only ["/tags/edit"]
+    only ["/tags/edit", "/post/:id/edit"]
 
     def call(context)
       return call_next(context) unless only_match?(context)
@@ -43,8 +33,8 @@ module Davbooru
   end
 
   Dir.mkdir("./backup/") unless Dir.exists?("./backup/")
+  Dir.mkdir_p("./public/thumb/") unless Dir.exists?("./public/thumb/")
   File.copy("./default.db", "./davbooru.db") unless File.exists?("./davbooru.db")
-  
   
   parser = OptionParser.new do |parser|
     parser.banner = "Usage: davbooru [command] [arguments]"
@@ -82,7 +72,7 @@ module Davbooru
 
   get "/" do
     site_title = "DAVbooru"
-    media_count = get_total(db)
+    media_count = indexer.get_total()
     render "src/views/index.ecr", "src/views/layout.ecr"
   end
 
@@ -95,13 +85,13 @@ module Davbooru
     if qb.path_filter
       db.query qb.sql, "%#{qb.path_filter}%" do |rs|
         rs.each do
-          posts << Post.from_row(rs)
+          posts << Post.from_row(rs, indexer)
         end
       end
     else
       db.query qb.sql do |rs|
         rs.each do
-          posts << Post.from_row(rs)
+          posts << Post.from_row(rs, indexer)
         end
       end
     end
@@ -125,7 +115,7 @@ module Davbooru
     tags = [] of Tag
     db.query "SELECT * FROM posts WHERE id = ? LIMIT 1", env.params.url["id"].to_i64 do |rs|
       rs.each do
-        post = Post.from_row(rs)
+        post = Post.from_row(rs, indexer)
       end
     end
     if post.nil?
@@ -142,7 +132,7 @@ module Davbooru
     end
   end
 
-  post "/post/:id" do |env|
+  post "/post/:id/edit" do |env|
     post_id = env.params.url["id"]
     back_url = "/post/#{post_id}"
     tag_string = env.params.body["tags"]
@@ -168,10 +158,10 @@ module Davbooru
     end
 
     db.transaction do |t|
-      t.connection.exec "DELETE FROM post_tags WHERE post_id = #{post_id}"
+      t.connection.exec "DELETE FROM post_tags WHERE post_id = ?", post_id
 
       tag_ids.each do |id|
-        t.connection.exec "INSERT OR IGNORE INTO post_tags VALUES(#{post_id}, #{id})"
+        t.connection.exec "INSERT OR IGNORE INTO post_tags VALUES(?, ?)", post_id, id
       end
       t.commit
     end
@@ -186,6 +176,16 @@ module Davbooru
     end
   end
 
+  get "/post/:id/thumbnail" do |env|
+    id = env.params.url["id"]
+    db.query "SELECT * FROM posts WHERE id = ? LIMIT 1", id do |rs|
+      rs.each do
+        post = Post.from_row(rs, indexer)
+        env.redirect "/thumb/#{post.thumbnail}"
+      end
+    end
+  end
+
   get "/random" do |env|
     begin
       search_string = env.params.query["q"]
@@ -195,20 +195,20 @@ module Davbooru
       if qb.path_filter
         db.query qb.sql, "%#{qb.path_filter}%" do |rs|
           rs.each do
-            posts << Post.from_row(rs)
+            posts << Post.from_row(rs, indexer)
           end
         end
       else
         db.query qb.sql do |rs|
           rs.each do
-            posts << Post.from_row(rs)
+            posts << Post.from_row(rs, indexer)
           end
         end
       end
       env.redirect "/post/#{posts.sample.id}?q=#{search_param}"
     rescue e
       puts "RANDOM ERROR: #{e}"
-      env.redirect "/post/#{rand(get_total(db))}"
+      env.redirect "/post/#{rand(indexer.get_total())}"
     end
   end
 
@@ -258,18 +258,12 @@ module Davbooru
   end
 
   if only_index
-    puts "Starting indexing..."
     indexer.run
-    puts "Indexing finished!"
-    puts "#{get_total(db, true)} in database."
   else
     unless dont_index
       spawn do
         loop do
-          puts "Starting indexing..."
           indexer.run
-          puts "Indexing finished!"
-          puts "#{get_total(db, true)} in database."
           sleep 60.minutes
         end
       end
