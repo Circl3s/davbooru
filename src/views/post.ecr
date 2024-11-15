@@ -33,7 +33,7 @@
     <div class="modal fade" id="tags-modal" tabindex="-1" aria-labelledby="tags-modal-label" aria-hidden="true">
         <div class="modal-dialog modal-fullscreen-sm-down">
             <div class="modal-content">
-                <form action="/post/<%= post ? post.id : 0%>" method="POST" id="tags-form">
+                <form action="/post/<%= post ? post.id : 0%>/edit" method="POST" id="tags-form">
                     <div class="modal-header">
                         <h1 class="modal-title fs-5" id="tags-modal-label">Edit tags</h1>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

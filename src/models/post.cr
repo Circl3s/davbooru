@@ -1,4 +1,5 @@
 require "mime"
+require "uri"
 
 class Post
     getter id : Int64
@@ -20,11 +21,10 @@ class Post
     end
 
     def thumbnail
-        if @thumbnail
-            return @thumbnail if File.exists?("./public/thumb/#{@thumbnail}")
+        if File.exists?("./public/thumb/#{@id}.webp")
+          return "/thumb/#{@id}.webp"
+        else
+          return "/post/#{@id}/thumbnail?url=#{URI.encode_path_segment(@url)}"
         end
-
-        @thumbnail = @indexer.generate_thumbnail(self)
-        return @thumbnail
     end
 end

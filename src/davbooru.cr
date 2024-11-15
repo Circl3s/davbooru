@@ -35,7 +35,7 @@ module Davbooru
   Dir.mkdir("./backup/") unless Dir.exists?("./backup/")
   Dir.mkdir_p("./public/thumb/") unless Dir.exists?("./public/thumb/")
   File.copy("./default.db", "./davbooru.db") unless File.exists?("./davbooru.db")
-  
+
   parser = OptionParser.new do |parser|
     parser.banner = "Usage: davbooru [command] [arguments]"
     parser.on("index", "Index new files over WebDAV, then quit immediately.") { only_index = true }
@@ -105,7 +105,7 @@ module Davbooru
     else
       total_pages = (total_posts / QueryBuilder::DEFAULT_PAGE_SIZE).ceil
       paged_posts = posts[(page * QueryBuilder::DEFAULT_PAGE_SIZE)..((page+1) * QueryBuilder::DEFAULT_PAGE_SIZE) - 1]
-      
+
       render "src/views/search.ecr", "src/views/layout.ecr"
     end
   end
@@ -178,12 +178,15 @@ module Davbooru
 
   get "/post/:id/thumbnail" do |env|
     id = env.params.url["id"]
-    db.query "SELECT * FROM posts WHERE id = ? LIMIT 1", id do |rs|
-      rs.each do
-        post = Post.from_row(rs, indexer)
-        env.redirect "/thumb/#{post.thumbnail}"
+    url = env.params.query["url"]
+    unless File.exists?("./public/thumb/#{id}.webp")
+      begin
+        indexer.generate_thumbnail(id, url)
+      rescue
+        halt env, status_code: 404, response: "No thumb for you. :("
       end
     end
+    env.redirect "/thumb/#{id}.webp"
   end
 
   get "/random" do |env|
@@ -220,7 +223,7 @@ module Davbooru
         tags << Tag.from_row(rs)
       end
     end
-    
+
     db.query "SELECT name FROM categories ORDER BY id ASC" do |rs|
       rs.each do
         categories << rs.read(String)

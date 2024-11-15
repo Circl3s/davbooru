@@ -28,7 +28,7 @@ class Indexer
         if @total_media == nil
             @total_media = (@db.scalar "SELECT COUNT(id) FROM posts").as(Int64) || -1_i64
         end
-        
+
         return @total_media.not_nil!
     end
 
@@ -59,7 +59,7 @@ class Indexer
                                 rescue
                                 end
                                 if (type.includes?("image") || type.includes?("video"))
-                                    t.connection.exec "INSERT OR IGNORE INTO posts VALUES(NULL, ?, 0)", url.to_s
+                                    t.connection.exec "INSERT OR IGNORE INTO posts VALUES(NULL, ?, 0, NULL)", url.to_s
                                 end
                             end
                         end
@@ -76,10 +76,12 @@ class Indexer
         puts "#{get_total(true)} in database."
     end
 
-    def generate_thumbnail(post : Post)
-        puts "Generating thumb for #{post.id}"
-        name = UUID.random.to_s + ".webp"
-        is_video = post.type.includes?("video")
+    def generate_thumbnail(id, url)
+        puts "Generating thumb for #{id}"
+        name = "#{id}.webp"
+        # url = URI.decode(url)
+        puts url
+        is_video = MIME.from_filename(url).includes?("video")
         # headers = HTTP::Headers.new
         # headers.add("Authorization", "Basic #{Base64.urlsafe_encode(@username + ":" + @password)}")
         # headers.add("Range", "bytes:0-3000000")
@@ -106,11 +108,12 @@ class Indexer
 
         #     end
         # end
-        
-        status = Process.run("./thumb.sh", [Base64.urlsafe_encode(@username + ":" + @password), post.url, name, is_video ? "video" : ""], shell: true)
+
+        status = Process.run("./thumb.sh", [Base64.urlsafe_encode(@username + ":" + @password), url, name, is_video ? "video" : ""])
         if status.success?
-            @db.exec "UPDATE posts SET thumbnail = ? WHERE posts.id = ?", name, post.id
-            post.thumbnail = name
+            return "/thumb/#{name}"
+        else
+            raise "yeet"
         end
     end
 end
