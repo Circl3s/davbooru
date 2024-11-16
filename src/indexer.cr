@@ -81,37 +81,22 @@ class Indexer
     def generate_thumbnail(id, url)
         puts "Generating thumb for #{id}"
         name = "#{id}.webp"
-        # url = URI.decode(url)
-        puts url
-        is_video = MIME.from_filename(url).includes?("video")
-        # headers = HTTP::Headers.new
-        # headers.add("Authorization", "Basic #{Base64.urlsafe_encode(@username + ":" + @password)}")
-        # headers.add("Range", "bytes:0-3000000")
+        is_video = MIME.from_filename(url).includes?("video") || MIME.from_filename(url).includes?("gif")
 
-        # HTTP::Client.get(post.url, headers) do |res|
-        #     ffmpeg = Process.find_executable("ffmpeg")
+        ffmpeg = Process.find_executable("ffmpeg")
 
-        #     args = [] of String
-        #     args << "-i"
-        #     args << "pipe:"
-        #     args << "-t" if is_video
-        #     args << "2" if is_video
-        #     args << "-vf"
-        #     args << "scale=-1:240"
-        #     args << "-loop" if is_video
-        #     args << "0" if is_video
-        #     args << "./public/thumb/#{name}"
+        args = [] of String
+        args << "-i"
+        args << url.sub("https://", "https://#{@username}:#{password}@")
+        args << "-t" if is_video
+        args << "2" if is_video
+        args << "-vf"
+        args << "scale=-1:240"
+        args << "-loop" if is_video
+        args << "0" if is_video
+        args << "./public/thumb/#{name}"
 
-        #     Process.run(ffmpeg || "ffmpeg", args) do |proc|
-        #         proc.input.write res.body_io.getb_to_end
-
-        #         @db.exec "UPDATE posts SET thumbnail = ? WHERE posts.id = ?", name, post.id
-        #         post.thumbnail = name
-
-        #     end
-        # end
-
-        status = Process.run("./thumb.sh", [Base64.urlsafe_encode(@username + ":" + @password), url, name, is_video ? "video" : ""])
+        status = Process.run(ffmpeg || "ffmpeg", args)
         if status.success?
             return "/thumb/#{name}"
         else
