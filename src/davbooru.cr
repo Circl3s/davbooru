@@ -23,6 +23,7 @@ module Davbooru
   base_url = ""
   nsfw = false
   thumbnails = true
+  testing = false
 
   class ImportantAuthHandler < Kemal::BasicAuth::Handler
     only ["/tags/edit", "/post/:id/edit"]
@@ -45,6 +46,10 @@ module Davbooru
       puts "Launching without scheduled indexing. New files won't be accessible on DAVbooru."
     end
     parser.on("--no-thumbnails", "Disable thumbnail generation.") { thumbnails = false }
+    parser.on("--testing", "Use a test database instead of the real one.") do
+      testing = true
+      File.copy("./davbooru.db", "./test.db")
+    end
     parser.on("--nsfw", "Changes some things to be specifically NSFW.") { nsfw = true }
     parser.on("-u", "--username=NAME", "Set WebDADV username used to index media.") { |name| username = name }
     parser.on("--url=URL", "Base URL of the WebDAV server.") { |url| base_url = url }
@@ -69,7 +74,7 @@ module Davbooru
     exit(1)
   end
 
-  db = DB.open("sqlite3://./davbooru.db?journal_mode=wal&synchronous=normal&foreign_keys=true")
+  db = DB.open("sqlite3://./#{testing ? "test" : "davbooru"}.db?journal_mode=wal&synchronous=normal&foreign_keys=true")
   indexer = Indexer.new(db, base_url, username, password)
 
   get "/" do
