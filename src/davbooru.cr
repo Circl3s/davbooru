@@ -137,7 +137,10 @@ module Davbooru
       end
       site_title = "DAVbooru | Post ##{post.id}"
       if thumbnails && !File.exists?("./public/thumb/#{post.id}.webp")
-        indexer.generate_thumbnail(post.id, post.url)
+        begin
+          indexer.generate_thumbnail(post.id, post.url)
+        rescue
+        end
       end
       render "src/views/post.ecr", "src/views/layout.ecr"
     end
