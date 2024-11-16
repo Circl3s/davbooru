@@ -27,4 +27,12 @@ class Post
           return "/post/#{@id}/thumbnail?url=#{URI.encode_path_segment(@url)}"
         end
     end
+
+    def path
+      return URI.decode(URI.parse(@url.sub(@indexer.base_url.to_s, "")).resolve(".").path)
+    end
+
+    def name
+      return URI.decode(@url.split("/").last)
+    end
 end

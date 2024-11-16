@@ -25,7 +25,7 @@ class Indexer
     end
 
     def get_total(force_update : Bool = false) : Int64
-        if @total_media == nil
+        if @total_media == nil || force_update
             @total_media = (@db.scalar "SELECT COUNT(id) FROM posts").as(Int64) || -1_i64
         end
 

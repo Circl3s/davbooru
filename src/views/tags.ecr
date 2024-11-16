@@ -26,7 +26,7 @@
                     <td><%= tag.id %></td>
                     <td><%= tag.parent_id ? "<a href=\"#tag-#{tag.parent_id}\">#{tag.parent_id}</a>" : "-"%></td>
                     <td style="color: <%= tag.color%>"><%= tag.category_name%></td>
-                    <th scope="row" style="color: <%= tag.color%>"><%= tag.name %></th>
+                    <th scope="row"><a style="color: <%= tag.color%>" href="/search?q=<%= URI.encode_www_form(tag.name) %>&p=0"><%= tag.name %></a></th>
                     <td><%= tag.description %></td>
                     <td>
                         <button class="btn btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#tags-modal" onclick="update_modal(<%= tag.id %>, <%= tag.parent_id || "null" %>, `<%= tag.name %>`, <%= tag.category_id %>, `<%= tag.description %>`)">Edit</button>
