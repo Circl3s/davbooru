@@ -261,6 +261,8 @@ module Davbooru
       tag_category = env.params.body["category"]
       tag_description = env.params.body["description"]
 
+      raise "You can't have children with yourself. I tried." if tag_id.to_i64 == tag_parent.to_i64
+
       args = [] of DB::Any
       args << (tag_id.blank? ? nil : tag_id.to_i64)
       args << tag_name
@@ -273,7 +275,7 @@ module Davbooru
       env.redirect back_url + "#tag-#{result.last_insert_id}"
     rescue e
       site_title = "DAVbooru | Error"
-      message = "DAVbooru encountered an error: #{e}"
+      message = "DAVbooru encountered an error:<br />#{e}"
       render "src/views/error.ecr", "src/views/layout.ecr"
     end
   end
