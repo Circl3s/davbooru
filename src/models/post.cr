@@ -20,11 +20,11 @@ class Post
         return MIME.from_filename(@url)
     end
 
-    def thumbnail
-        if File.exists?("./public/thumb/#{@id}.webp")
+    def thumbnail(force : Bool = false)
+        if File.exists?("./public/thumb/#{@id}.webp") && !force
           return "/thumb/#{@id}.webp"
         else
-          return "/post/#{@id}/thumbnail?url=#{URI.encode_path_segment(@url)}"
+          return "/post/#{@id}/thumbnail?url=#{URI.encode_path_segment(@url)}#{force ? "&force=1" : ""}"
         end
     end
 

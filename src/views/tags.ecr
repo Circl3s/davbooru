@@ -24,7 +24,7 @@
                 <% tags.each do |tag| %>
                 <tr id="tag-<%= tag.id %>">
                     <td><%= tag.id %></td>
-                    <td><%= tag.parent_id ? "<a href=\"#tag-#{tag.parent_id}\">#{tag.parent_id}</a>" : "-"%></td>
+                    <td><%= tag.parent_id ? "<a href=\"#tag-#{tag.parent_id}\"><abbr title=\"#{begin (tags.find! { |t| t.id == tag.parent_id }).name rescue "?" end}\">#{tag.parent_id}</abbr></a>" : "-"%></td>
                     <td style="color: <%= tag.color%>"><%= tag.category_name%></td>
                     <th scope="row"><a style="color: <%= tag.color%>" href="/search?q=<%= URI.encode_www_form(tag.name) %>&p=0"><%= tag.name %></a></th>
                     <td><%= tag.description %></td>
