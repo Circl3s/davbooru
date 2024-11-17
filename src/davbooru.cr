@@ -261,13 +261,16 @@ module Davbooru
       tag_category = env.params.body["category"]
       tag_description = env.params.body["description"]
 
-      raise "You can't have children with yourself. I tried." if tag_id.to_i64 == tag_parent.to_i64
+      tag_id = tag_id.blank? ? nil : tag_id.to_i64
+      tag_parent = tag_parent.blank? ? nil : tag_parent.to_i64
+
+      raise "You can't have children with yourself. I tried." if tag_id == tag_parent && (tag_id || tag_parent != nil)
 
       args = [] of DB::Any
-      args << (tag_id.blank? ? nil : tag_id.to_i64)
+      args << tag_id
       args << tag_name
       args << (tag_category.blank? ? 1 : tag_category.to_i64)
-      args << (tag_parent.blank? ? nil : tag_parent.to_i64)
+      args << tag_parent
       args << tag_description
 
       result = db.exec "INSERT OR IGNORE INTO tags VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET name=excluded.name, category_id=excluded.category_id, parent_id=excluded.parent_id, description=excluded.description", args: args
