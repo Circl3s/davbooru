@@ -70,7 +70,7 @@ class Indexer
                                 rescue
                                 end
                                 if (type.includes?("image") || type.includes?("video"))
-                                    t.connection.exec "INSERT OR IGNORE INTO posts VALUES(NULL, ?, 0, NULL)", url.to_s
+                                    t.connection.exec "INSERT OR IGNORE INTO posts VALUES(NULL, ?, 0)", url.to_s
                                 end
                             end
                         end

@@ -8,12 +8,12 @@ class Post
     setter thumbnail : String?
     @indexer : Indexer
 
-    def initialize(@id, @url, @kudos, @thumbnail, @indexer)
+    def initialize(@id, @url, @kudos, @indexer)
 
     end
 
     def self.from_row(row : DB::ResultSet, indexer : Indexer)
-        return self.new(row.read(Int64), row.read(String), row.read(Int64), row.read(String?), indexer)
+        return self.new(row.read(Int64), row.read(String), row.read(Int64), indexer)
     end
 
     def type
