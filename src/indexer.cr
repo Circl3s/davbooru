@@ -12,6 +12,7 @@ class Indexer
     property username : String
     property password : String
     property total_media : Int64?
+    property tagged_media : Int64?
     property whitelist = [] of String
     property blacklist = [] of String
     @backup_number = 0
@@ -30,6 +31,14 @@ class Indexer
         end
 
         return @total_media.not_nil!
+    end
+
+    def get_tagged(force_update : Bool = false) : Int64
+        if @tagged_media == nil || force_update
+            @tagged_media = get_total - (@db.scalar "SELECT COUNT(DISTINCT(post_id)) FROM post_tags WHERE tag_id = 1").as(Int64) || -1_i64
+        end
+
+        return @tagged_media.not_nil!
     end
 
     def run
@@ -75,7 +84,8 @@ class Indexer
             end
         end
         puts "Indexing finished!"
-        puts "#{get_total(true)} in database."
+        puts "#{get_total(true)} in database, #{get_tagged(true)} of which are tagged."
+        @backup_number = (@backup_number + 1) % 24
     end
 
     def generate_thumbnail(id, url)

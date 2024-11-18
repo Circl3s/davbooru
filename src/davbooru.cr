@@ -26,7 +26,7 @@ module Davbooru
   testing = false
 
   class ImportantAuthHandler < Kemal::BasicAuth::Handler
-    only ["/tags/edit", "/post/:id/edit"]
+    only ["/tag/edit", "/post/:id/edit", "/tag/:id"]
 
     def call(context)
       return call_next(context) unless only_match?(context)
@@ -79,7 +79,9 @@ module Davbooru
 
   get "/" do
     site_title = "DAVbooru"
-    media_count = indexer.get_total()
+    media_count = indexer.get_total
+    tagged = indexer.get_tagged
+    tagging_progress = (tagged / media_count * 100).round(1)
     render "src/views/index.ecr", "src/views/layout.ecr"
   end
 
@@ -104,7 +106,7 @@ module Davbooru
       end
     end
     total_posts = posts.size
-    site_title = "DAVbooru | Search: #{search_string}"
+    site_title = "Search: #{search_string} | DAVbooru"
     if total_posts == 0
       message = "No posts found matching current criteria. :("
       back_url = "/search?q=&p=0"
@@ -135,7 +137,7 @@ module Davbooru
           tags << Tag.from_row(rs)
         end
       end
-      site_title = "DAVbooru | Post ##{post.id}"
+      site_title = "Post ##{post.id} | DAVbooru"
       render "src/views/post.ecr", "src/views/layout.ecr"
     end
   end
@@ -179,7 +181,7 @@ module Davbooru
     else
       env.response.status_code = 400
       message = "Ignored unknown tags: #{invalid_tags.join(", ")}"
-      site_title = "DAVbooru | Warning"
+      site_title = "Warning | DAVbooru"
       render "src/views/error.ecr", "src/views/layout.ecr"
     end
   end
@@ -203,7 +205,7 @@ module Davbooru
     qb = QueryBuilder.new(db, "", 0)
     total_pages = 0
     search_param = ""
-    site_title = "DAVbooru | Favourites"
+    site_title = "Favourites | DAVbooru"
     render "src/views/search.ecr", "src/views/layout.ecr"
   end
 
@@ -233,7 +235,7 @@ module Davbooru
     end
   end
 
-  get "/tags" do |env|
+  get "/tag" do |env|
     tags = [] of Tag
     categories = [] of String
     db.query "SELECT tags.*, categories.name FROM tags JOIN categories ON tags.category_id = categories.id ORDER BY category_id ASC, tags.id ASC" do |rs|
@@ -248,12 +250,12 @@ module Davbooru
       end
     end
 
-    site_title = "DAVbooru | Tag List"
+    site_title = "Tag List | DAVbooru"
     render "src/views/tags.ecr", "src/views/layout.ecr"
   end
 
-  post "/tags/edit" do |env|
-    back_url = "/tags"
+  post "/tag/edit" do |env|
+    back_url = "/tag"
     begin
       tag_id = env.params.body["id"]
       tag_parent = env.params.body["parent-id"]
@@ -277,7 +279,82 @@ module Davbooru
 
       env.redirect back_url + "#tag-#{result.last_insert_id}"
     rescue e
-      site_title = "DAVbooru | Error"
+      site_title = "Error | DAVbooru"
+      message = "DAVbooru encountered an error:<br />#{e}"
+      render "src/views/error.ecr", "src/views/layout.ecr"
+    end
+  end
+
+  get "/tag/:id/" do |env|
+    tag_id = env.params.url["id"]
+    tag = nil
+    db.query "SELECT tags.*, categories.name FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.id = ? LIMIT 1", tag_id do |rs|
+      rs.each do
+        tag = Tag.from_row(rs)
+      end
+    end
+    if tag.nil?
+      env.response.status_code = 404
+      raise Kemal::Exceptions::CustomException.new env
+    else
+      site_title = "Tagger: #{tag.name} | DAVbooru"
+      render "src/views/tagger.ecr", "src/views/layout.ecr"
+    end
+  end
+
+  post "/tag/:id/mass_tag" do |env|
+    tag_id = env.params.url["id"].to_i64
+    predicate = URI.encode_path(env.params.body["predicate"])
+    respect_tagme = (env.params.body["respect_tagme"]? || false) == "true"
+    posts = [] of Post
+
+    begin
+      db.query "SELECT posts.* FROM posts JOIN post_tags ON post_id = posts.id WHERE posts.url LIKE ? #{respect_tagme ? "AND tag_id = 1 " : ""}GROUP BY posts.id", "%#{predicate}%" do |rs|
+        rs.each do
+          posts << Post.from_row(rs, indexer)
+        end
+      end
+
+      db.transaction do |t|
+        posts.each do |post|
+          t.connection.exec "INSERT OR IGNORE INTO post_tags VALUES(?, ?)", post.id, tag_id
+        end
+        t.commit
+      end
+
+      env.redirect "/search?q=path:\"#{predicate}\"&p=0"
+    rescue e
+      back_url = "/tag/#{tag_id}"
+      site_title = "Error | DAVbooru"
+      message = "DAVbooru encountered an error:<br />#{e}"
+      render "src/views/error.ecr", "src/views/layout.ecr"
+    end
+  end
+
+  post "/tag/:id/mass_remove" do |env|
+    tag_id = env.params.url["id"].to_i64
+    predicate = URI.encode_path(env.params.body["predicate"])
+    respect_tagme = (env.params.body["respect_tagme"]? || false) == "true"
+    posts = [] of Post
+
+    begin
+      db.query "SELECT posts.* FROM posts JOIN post_tags ON post_id = posts.id WHERE posts.url LIKE ? #{respect_tagme ? "AND tag_id = 1 " : ""}GROUP BY posts.id", "%#{predicate}%" do |rs|
+        rs.each do
+          posts << Post.from_row(rs, indexer)
+        end
+      end
+
+      db.transaction do |t|
+        posts.each do |post|
+          t.connection.exec "DELETE FROM post_tags WHERE post_id = ? AND tag_id = ?", post.id, tag_id
+        end
+        t.commit
+      end
+
+      env.redirect "/search?q=path:\"#{predicate}\"&p=0"
+    rescue e
+      back_url = "/tag/#{tag_id}"
+      site_title = "Error | DAVbooru"
       message = "DAVbooru encountered an error:<br />#{e}"
       render "src/views/error.ecr", "src/views/layout.ecr"
     end

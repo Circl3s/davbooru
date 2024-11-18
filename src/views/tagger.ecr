@@ -1,0 +1,33 @@
+<main class="row justify-content-center m-4">
+    <div class="col col-sm-6">
+        <div class="text-center">
+            <h1><a href="/search?q=<%= URI.encode_www_form(tag.name) %>&p=0" style="color: <%= tag.color %>"><%= tag.name %></a></h1>
+            <h2 style="color: <%= tag.color %>"><%= tag.category_name %></h2>
+            <h3><%= tag.description %></h3>
+        </div>
+        <hr />
+        <h4 class="text-center">Mass operations by path</h4>
+        <form method="POST">
+            <div class="input-group my-2">
+                <span class="input-group-text" id="input-decoration">Path:</span>
+                <input class="form-control" type="text" name="predicate" id="predicate-input" placeholder="Predicate" aria-label="Predicate" aria-describedby="input-decoration">
+                <button class="btn btn-outline-secondary" type="button" id="preview">Preview</button>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" role="switch" type="checkbox" name="respect_tagme" value="true" id="tagme-input" checked>
+                <label class="form-check-label" for="tagme-input">
+                    Only posts tagged with tagme
+                </label>
+            </div>
+            <div class="row d-flex justify-content-center align-items-center">
+                <input type="submit" formaction="/tag/<%= tag.id %>/mass_tag" class="btn col-3 col-sm-auto m-2 btn-success" value="Tag!"></input>
+                <input type="submit" formaction="/tag/<%= tag.id %>/mass_remove" class="btn col-3 col-sm-auto m-2 btn-danger" value="Remove!"></input>
+            </div>
+        </form>
+    </div>
+    <script>
+        document.getElementById("preview").onclick = () => {
+            window.open(`/search?q=path:"${encodeURIComponent(document.getElementById("predicate-input").value)}"&p=0`, "_blank")
+        };
+    </script>
+</main>

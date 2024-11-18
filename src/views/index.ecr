@@ -1,9 +1,17 @@
 <main class="container text-center m-8">
     <div class="row align-items-center position-absolute top-50 start-50 translate-middle">
         <div class="col">
-            <h1>DAVbooru</h1>
-            <h3>Serving <b><%= media_count %></b> media.</h3>
-            <small>Use the navigation bar at the top to start browsing.</small>
+            <div class="container">
+                <h1>DAVbooru</h1>
+                <h3>Serving <b><%= media_count %></b> media.</h3>
+                <small>Use the navigation bar at the top to start browsing.</small>
+            </div>
+        </div>
+    </div>
+    <div class="container position-absolute bottom-0 start-50 translate-middle">
+        <h3>Tagging progress:</h3>
+        <div style="height: 24px" title="<%= tagged %> tagged" class="progress vw-75" role="progressbar" aria-label="Percent of tagged posts" aria-valuenow="<%= tagging_progress %>" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar <%= tagging_progress == 100.0 ? "" : "progress-bar-striped progress-bar-animated" %> text-bg-success" style="width: <%= tagging_progress%>%"><%= tagging_progress %>%</div>
         </div>
     </div>
 </main>

@@ -31,6 +31,7 @@
                     <td>
                         <button class="btn btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#tags-modal" onclick="update_modal(<%= tag.id %>, <%= tag.parent_id || "null" %>, `<%= tag.name %>`, <%= tag.category_id %>, `<%= tag.description %>`)">Edit</button>
                         <button class="btn btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#tags-modal" onclick="update_modal(null, <%= tag.id || "null" %>, ``, <%= tag.category_id %>, ``)">Add child</button>
+                        <a href="/tag/<%= tag.id %>/" class="btn btn-success edit-btn">Tag Posts</a>
                     </td>
                 </tr>
                 <% end %>
@@ -40,7 +41,7 @@
     <div class="modal fade" id="tags-modal" tabindex="-1" aria-labelledby="tags-modal-label" aria-hidden="true">
         <div class="modal-dialog modal-fullscreen-sm-down">
             <div class="modal-content">
-                <form id="modal-form" action="/tags/edit" method="POST" class="needs-validation" novalidate>
+                <form id="modal-form" action="/tag/edit" method="POST" class="needs-validation" novalidate>
                     <div class="modal-header">
                         <h1 class="modal-title fs-5" id="tags-modal-label">Add/edit tag</h1>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
