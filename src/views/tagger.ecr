@@ -1,9 +1,9 @@
 <main class="row justify-content-center m-4">
     <div class="col col-sm-6">
         <div class="text-center">
-            <h1><a href="/search?q=<%= URI.encode_www_form(tag.name) %>&p=0" style="color: <%= tag.color %>"><%= tag.name %></a></h1>
-            <h2 style="color: <%= tag.color %>"><%= tag.category_name %></h2>
-            <h3><%= tag.description %></h3>
+            <h1><a href="/search?q=<%= URI.encode_www_form(tag.name) %>&p=0" style="color: <%= tag.color %>"><%= HTML.escape(tag.name) %></a></h1>
+            <h2 style="color: <%= tag.color %>"><%= HTML.escape(tag.category_name) %></h2>
+            <h3><%= HTML.escape(tag.description) %></h3>
         </div>
         <hr />
         <h4 class="text-center">Mass operations by path</h4>

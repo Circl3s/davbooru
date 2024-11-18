@@ -1,4 +1,5 @@
 require "db"
+require "html"
 require "kemal"
 require "kemal-basic-auth"
 require "option_parser"

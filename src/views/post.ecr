@@ -10,9 +10,9 @@
             <% if last_cat != tag.category_name %>
                 <%= "</ul>" unless last_cat == "" %>
                 <ul class="list-unstyled" style="color: <%= tag.color %>;">
-                <b><%= tag.category_name%></b>
+                <b><%= HTML.escape(tag.category_name) %></b>
             <% end %>
-            <li><a style="color: <%= tag.color %>;" href="/search?q=<%= tag.name %>&p=0" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="<%= tag.description %>"><%= tag.name %></a></li>
+            <li><a style="color: <%= HTML.escape(tag.color) %>;" href="/search?q=<%= tag.name %>&p=0" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="<%= HTML.escape(tag.description) %>"><%= HTML.escape(tag.name) %></a></li>
             <% last_cat = tag.category_name %>
         <% end %>
         <% should_loop = tag_names.includes? "loop" %>
@@ -21,9 +21,9 @@
         <h4 class="my-4"><%= nsfw ? "Cum counter:" : "Kudos:"%> <span id="kudos"><%= post.kudos %></span></h4>
         <h3>Info</h3>
         <b>Filename:</b>
-        <p class="text-nowrap text-center font-monospace overflow-x-scroll p-2 bg-secondary-subtle" style="direction: rtl;"><%= post.name %></p>
+        <p class="text-nowrap text-center font-monospace overflow-x-scroll p-2 bg-secondary-subtle" style="direction: rtl;"><%= HTML.escape(post.name) %></p>
         <b>Path:</b>
-        <p class="text-nowrap text-center font-monospace overflow-x-scroll p-2 bg-secondary-subtle" style="direction: rtl;"><%= post.path %></p>
+        <p class="text-nowrap text-center font-monospace overflow-x-scroll p-2 bg-secondary-subtle" style="direction: rtl;"><%= HTML.escape(post.path) %></p>
         <div class="row align-items-center justify-content-between">
             <div class="col-3">
                 <b>Thumbnail:</b>
@@ -60,7 +60,7 @@
                     <div class="modal-body">
                         <div class="my-2">
                             <label for="tags-text-area" class="form-label">Tag names (separated by spaces)</label>
-                            <textarea name="tags" class="form-control" id="tags-text-area" rows="3"> <%= tag_names.join(" ") %></textarea>
+                            <textarea name="tags" class="form-control" id="tags-text-area" rows="3"> <%= HTML.escape(tag_names.join(" ")) %></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">

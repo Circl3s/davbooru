@@ -24,9 +24,9 @@
                 <% tags.each do |tag| %>
                 <tr id="tag-<%= tag.id %>">
                     <td><%= tag.id %></td>
-                    <td><%= tag.parent_id ? "<a href=\"#tag-#{tag.parent_id}\"><abbr title=\"#{begin (tags.find! { |t| t.id == tag.parent_id }).name rescue "?" end}\">#{tag.parent_id}</abbr></a>" : "-"%></td>
-                    <td style="color: <%= tag.color%>"><%= tag.category_name%></td>
-                    <th scope="row"><a style="color: <%= tag.color%>" href="/search?q=<%= URI.encode_www_form(tag.name) %>&p=0"><%= tag.name %></a></th>
+                    <td><%= tag.parent_id ? "<a href=\"#tag-#{tag.parent_id}\"><abbr title=\"#{begin HTML.escape((tags.find! { |t| t.id == tag.parent_id }).name) rescue "?" end}\">#{tag.parent_id}</abbr></a>" : "-"%></td>
+                    <td style="color: <%= HTML.escape(tag.color) %>"><%= HTML.escape(tag.category_name) %></td>
+                    <th scope="row"><a style="color: <%= HTML.escape(tag.color) %>" href="/search?q=<%= URI.encode_www_form(tag.name) %>&p=0"><%= HTML.escape(tag.name) %></a></th>
                     <td><%= tag.description %></td>
                     <td>
                         <button class="btn btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#tags-modal" onclick="update_modal(<%= tag.id %>, <%= tag.parent_id || "null" %>, `<%= tag.name %>`, <%= tag.category_id %>, `<%= tag.description %>`)">Edit</button>
@@ -58,7 +58,7 @@
                             </div>
                             <div class="col-12">
                                 <label for="tags-name">Name</label>
-                                <input type="text" class="form-control form-control-lg" name="name" id="tags-name" pattern="^[^-][a-z0-9!^*\(\)_.?:;<>\/=\-]+$" required>
+                                <input type="text" class="form-control form-control-lg" name="name" id="tags-name" pattern="^[^\-][a-z0-9!^*\(\)_.?:;<>\/=\-]+$" required>
                                 <div class="invalid-feedback">
                                     Only alphanumeric and specific special characters are allowed. Can't begin with a "-".
                                 </div>
@@ -67,7 +67,7 @@
                                 <label for="tags-category" class="form-label">Category</label>
                                 <select class="form-select" aria-label="Default select example" name="category" id="tags-category">
                                     <% categories.each_with_index do |cat, i| %>
-                                    <option style="color: <%= Tag::COLORS[i] %>" value="<%= i + 1 %>"><%= cat %></option>
+                                    <option style="color: <%= Tag::COLORS[i] %>" value="<%= i + 1 %>"><%= HTML.escape(cat) %></option>
                                     <% end %>
                                 </select>
                             </div>
