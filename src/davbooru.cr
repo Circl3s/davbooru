@@ -78,7 +78,7 @@ module Davbooru
   db = DB.open("sqlite3://./#{testing ? "test" : "davbooru"}.db?journal_mode=wal&synchronous=normal&foreign_keys=true")
   indexer = Indexer.new(db, base_url, username, password)
 
-  get "/" do
+  get "/" do |env|
     site_title = "DAVbooru"
     media_count = indexer.get_total
     tagged = indexer.get_tagged
@@ -138,6 +138,7 @@ module Davbooru
           tags << Tag.from_row(rs)
         end
       end
+      env.set "thumb", post.thumbnail
       site_title = "Post ##{post.id} | DAVbooru"
       render "src/views/post.ecr", "src/views/layout.ecr"
     end
