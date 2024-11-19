@@ -2,6 +2,8 @@ require "db"
 require "html"
 require "kemal"
 require "kemal-basic-auth"
+require "kemal-session"
+require "kemal-flash"
 require "option_parser"
 require "sqlite3"
 require "uri"
@@ -78,6 +80,8 @@ module Davbooru
   db = DB.open("sqlite3://./#{testing ? "test" : "davbooru"}.db?journal_mode=wal&synchronous=normal&foreign_keys=true")
   indexer = Indexer.new(db, base_url, username, password)
 
+  Kemal::Session.config.secret = ":)"
+
   get "/" do |env|
     site_title = "DAVbooru"
     media_count = indexer.get_total
@@ -117,11 +121,26 @@ module Davbooru
       total_pages = (total_posts / QueryBuilder::DEFAULT_PAGE_SIZE).ceil
       paged_posts = posts[(page * QueryBuilder::DEFAULT_PAGE_SIZE)..((page+1) * QueryBuilder::DEFAULT_PAGE_SIZE) - 1]
 
+      unless qb.unknown_tags.empty?
+        env.set "toast-enabled", true
+        env.set "toast-title", "Ignoring unknown tags"
+        env.set "toast-body", qb.unknown_tags.join(", ")
+        env.set "toast-type", "warning"
+      end
+
+      if env.flash["affected"]?
+        env.set "toast-enabled", true
+        env.set "toast-title", "Success"
+        env.set "toast-body", "Posts affected: #{env.flash["affected"]?}"
+        env.set "toast-type", "info"
+      end
+
       render "src/views/search.ecr", "src/views/layout.ecr"
     end
   end
 
   get "/post/:id" do |env|
+    invalid_tags = env.flash["invalid"]?
     post = nil
     tags = [] of Tag
     db.query "SELECT * FROM posts WHERE id = ? LIMIT 1", env.params.url["id"].to_i64 do |rs|
@@ -139,6 +158,12 @@ module Davbooru
         end
       end
       env.set "thumb", post.thumbnail
+      if invalid_tags
+        env.set "toast-enabled", true
+        env.set "toast-title", "Ignored unknown tags"
+        env.set "toast-body", invalid_tags.split(" ").join(", ")
+        env.set "toast-type", "danger"
+      end
       site_title = "Post ##{post.id} | DAVbooru"
       render "src/views/post.ecr", "src/views/layout.ecr"
     end
@@ -178,14 +203,11 @@ module Davbooru
       t.commit
     end
 
-    if invalid_tags.empty?
-      env.redirect back_url
-    else
-      env.response.status_code = 400
-      message = "Ignored unknown tags: #{invalid_tags.join(", ")}"
-      site_title = "Warning | DAVbooru"
-      render "src/views/error.ecr", "src/views/layout.ecr"
+    unless invalid_tags.empty?
+      env.flash["invalid"] = invalid_tags.join(", ")
     end
+
+    env.redirect back_url
   end
 
   get "/post/:id/thumbnail" do |env|
@@ -199,6 +221,12 @@ module Davbooru
       end
     end
     env.redirect "/thumb/#{id}.webp"
+  end
+
+  post "/post/:id/kudos" do |env|
+    puts env.request.cookies["kudos"].value
+
+    
   end
 
   get "/favourites" do |env|
@@ -309,6 +337,7 @@ module Davbooru
     predicate = URI.encode_path(env.params.body["predicate"])
     respect_tagme = (env.params.body["respect_tagme"]? || false) == "true"
     posts = [] of Post
+    affected = 0_i64
 
     begin
       db.query "SELECT posts.* FROM posts JOIN post_tags ON post_id = posts.id WHERE posts.url LIKE ? #{respect_tagme ? "AND tag_id = 1 " : ""}GROUP BY posts.id", "%#{predicate}%" do |rs|
@@ -319,11 +348,13 @@ module Davbooru
 
       db.transaction do |t|
         posts.each do |post|
-          t.connection.exec "INSERT OR IGNORE INTO post_tags VALUES(?, ?)", post.id, tag_id
+          result = t.connection.exec "INSERT OR IGNORE INTO post_tags VALUES(?, ?)", post.id, tag_id
+          affected += result.rows_affected
         end
         t.commit
       end
 
+      env.flash["affected"] = affected.to_s
       env.redirect "/search?q=path:\"#{predicate}\"&p=0"
     rescue e
       back_url = "/tag/#{tag_id}"
@@ -338,6 +369,7 @@ module Davbooru
     predicate = URI.encode_path(env.params.body["predicate"])
     respect_tagme = (env.params.body["respect_tagme"]? || false) == "true"
     posts = [] of Post
+    affected = 0
 
     begin
       db.query "SELECT posts.* FROM posts JOIN post_tags ON post_id = posts.id WHERE posts.url LIKE ? #{respect_tagme ? "AND tag_id = 1 " : ""}GROUP BY posts.id", "%#{predicate}%" do |rs|
@@ -348,11 +380,13 @@ module Davbooru
 
       db.transaction do |t|
         posts.each do |post|
-          t.connection.exec "DELETE FROM post_tags WHERE post_id = ? AND tag_id = ?", post.id, tag_id
+          result = t.connection.exec "DELETE FROM post_tags WHERE post_id = ? AND tag_id = ?", post.id, tag_id
+          affected += result.rows_affected
         end
         t.commit
       end
 
+      env.flash["affected"] = affected.to_s
       env.redirect "/search?q=path:\"#{predicate}\"&p=0"
     rescue e
       back_url = "/tag/#{tag_id}"

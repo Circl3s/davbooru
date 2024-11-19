@@ -13,6 +13,10 @@ crystal: '>= 1.14.0'
 dependencies:
   kemal:
     github: kemalcr/kemal
+  kemal-session:
+    github: kemalcr/kemal-session
+  kemal-flash:
+    github: crystal-china/kemal-flash
   kemal-basic-auth:
     github: kemalcr/kemal-basic-auth
   db:

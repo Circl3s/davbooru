@@ -39,19 +39,6 @@
             </li>          
         </ul>
     </nav>
-    <% unless qb.unknown_tags.empty? %>
-    <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <div class="toast text-bg-warning show" role="alert" aria-live="assertive" aria-atomic="true" id="warning-toast">
-            <div class="toast-header">
-                <strong class="me-auto">Ignoring unknown tags</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-            <div class="toast-body">
-                <%= qb.unknown_tags.join(", ") %>
-            </div>
-        </div>
-    </div>
-    <% end %>
     <script type="module">
         let favs = localStorage.getItem("favourites")?.split(";").reverse() ?? [];
         favs = favs.filter(i => i != "");
