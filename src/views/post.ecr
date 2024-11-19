@@ -18,7 +18,16 @@
         <% should_loop = tag_names.includes? "loop" %>
         </ul>
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tags-modal" id="edit">Edit tags</button>
-        <h4 class="my-4"><%= nsfw ? "Cum counter:" : "Kudos:"%> <span id="kudos"><%= post.kudos %></span></h4>
+        <div class="row align-items-center justify-content-between my-4">
+            <div class="col-6">
+                <h4 class="m-0"><%= nsfw ? "Cum counter:" : "Kudos:" %> <span id="kudos"><%= post.kudos %></span></h4>
+            </div>
+            <div class="col-6 text-end">
+                <form action="/post/<%= post.id %>/kudos" method="POST">
+                    <input type="submit" class="btn btn-sm btn-outline-success" value="<%= nsfw ? "Cum" : "Send Kudos" %>"></input>
+                </form>
+            </div>
+        </div>
         <h3>Info</h3>
         <b>Filename:</b>
         <p class="text-nowrap text-center font-monospace overflow-x-scroll p-2 bg-secondary-subtle" style="direction: rtl;"><%= HTML.escape(post.name) %></p>
@@ -28,7 +37,7 @@
             <div class="col-3">
                 <b>Thumbnail:</b>
             </div>
-            <div class="col-3">
+            <div class="col-3 text-end">
                 <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#thumb-collapse" aria-expanded="false" aria-controls="thumb-collapse">
                     Show
                 </button>

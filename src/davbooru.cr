@@ -141,6 +141,7 @@ module Davbooru
 
   get "/post/:id" do |env|
     invalid_tags = env.flash["invalid"]?
+    kudosd = env.flash["kudosd"]?
     post = nil
     tags = [] of Tag
     db.query "SELECT * FROM posts WHERE id = ? LIMIT 1", env.params.url["id"].to_i64 do |rs|
@@ -163,6 +164,12 @@ module Davbooru
         env.set "toast-title", "Ignored unknown tags"
         env.set "toast-body", invalid_tags.split(" ").join(", ")
         env.set "toast-type", "danger"
+      end
+      if kudosd
+        env.set "toast-enabled", true
+        env.set "toast-title", (kudosd == "ok" ? "Success" : "Error")
+        env.set "toast-body", (kudosd == "ok" ? "Successfully #{nsfw ? "came" : "sent kudos"} to ##{post.id}!" : env.flash["kudosd-message"]? || "Something went wrong.")
+        env.set "toast-type", (kudosd == "ok" ? "success" : "danger")
       end
       site_title = "Post ##{post.id} | DAVbooru"
       render "src/views/post.ecr", "src/views/layout.ecr"
@@ -224,9 +231,19 @@ module Davbooru
   end
 
   post "/post/:id/kudos" do |env|
-    puts env.request.cookies["kudos"].value
+    post_id = env.params.url["id"]
+    cookie = env.request.cookies["kudos"]?
+    if cookie
+      env.flash["kudosd"] = "error"
+      env.flash["kudosd-message"] = "You can't #{nsfw ? "cum" : "send kudos"} to the same post more than once a day."
+      env.redirect "/post/#{post_id}"
+    else
+      db.exec "UPDATE posts SET kudos = kudos + 1 WHERE id = ?", post_id
 
-    
+      env.flash["kudosd"] = "ok"
+      env.response.cookies << HTTP::Cookie.new(name: "kudos", value: "true", path: "/post/#{post_id}/kudos", expires: (Time.utc() + 1.day).at_beginning_of_day)
+      env.redirect "/post/#{post_id}"
+    end
   end
 
   get "/favourites" do |env|
