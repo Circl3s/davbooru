@@ -45,14 +45,14 @@
         });
     }
 
-    input.onkeydown = (ev) => {
+    input.addEventListener("keydown", (ev) => {
         clearTimeout(timeout);
         suggestBox.hidden = true;
         let key = ev.code
         if (key != "Space" && key != "Backspace") {
             timeout = setTimeout(suggest, 500);
         }
-    }
+    });
 
     document.addEventListener("mouseup", (ev) => {
         suggestBox.hidden = true;
