@@ -1,10 +1,14 @@
+require "json"
+
 class Tag
+    include JSON::Serializable
     property id         : Int64
     property name       : String
     property category_id : Int64
     property parent_id  : Int64?
     property description : String
     property category_name : String
+    property color : String = "gray"
 
     COLORS = ["gray", "orange", "red", "green", "violet", "skyblue"]
 
@@ -16,6 +20,7 @@ class Tag
 
     def initialize(@id, @name, @category_id, @parent_id, @description, @category_name)
         @@cache[@id] = self
+        @color = COLORS[@category_id - 1]
     end
 
     def self.from_row(row : DB::ResultSet)
@@ -54,9 +59,5 @@ class Tag
                 end
             end
         end
-    end
-
-    def color
-        return COLORS[@category_id - 1]
     end
 end

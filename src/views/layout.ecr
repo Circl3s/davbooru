@@ -35,8 +35,10 @@
                         <a class="nav-link active" aria-current="page" href="/random" id="random">Random</a>
                     </li>
                 </ul>
-                <form class="d-flex" role="search" action="/search" method="get">
-                    <input class="form-control me-2" name="q" type="search" placeholder="Search for..." aria-label="Search" id="search-box">
+                <form class="d-flex position-relative" role="search" action="/search" method="get">
+                    <input class="form-control me-2" name="q" type="search" placeholder="Search for..." aria-label="Search" id="search-box" autocomplete="off">
+                    <% search_id = "search-box" %>
+                    <%= render "./src/views/components/suggestions.ecr" %>
                     <input type="hidden" name="p" value="0">
                     <button class="btn btn-outline-success" type="submit">Search</button>
                 </form>

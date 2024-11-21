@@ -1,0 +1,60 @@
+<div class="position-absolute top-100 my-2 z-3" id="<%= search_id %>-suggest" hidden>
+    <ul class="list-group" id="<%= search_id %>-suggest-items">
+        
+    </ul>
+</div>
+<script type="module">
+    const input = document.getElementById("<%= search_id %>");
+    const suggestBox = document.getElementById("<%= search_id %>-suggest");
+    const items = document.getElementById("<%= search_id %>-suggest-items");
+    var timeout;
+    var typedText = "";
+
+    function suggest() {
+        let text = input.value;
+        let previousSpace = text.lastIndexOf(" ", input.selectionStart - 1);
+        let nextSpace = text.indexOf(" ", input.selectionEnd);
+        let begin = previousSpace < 0 ? 0 : previousSpace + 1;
+        let end = nextSpace < 0 ? text.length : nextSpace;
+
+        let word = text.substring(begin, end);
+
+        items.innerHTML = "";
+
+        fetch(`/api/suggest?q=${encodeURIComponent(word)}`).then(async res => {
+            let tags = await res.json();
+            tags.forEach(tag => {
+                let item = document.createElement("a");
+                item.classList.add("list-group-item");
+                item.classList.add("list-group-item-action");
+                item.innerText = tag.name;
+                item.style.color = tag.color;
+                item.onclick = () => {
+                    let newValue = "";
+                    newValue += text.substring(0, begin);
+                    newValue += tag.name;
+                    newValue += text.substring(end, text.length);
+                    newValue += " ";
+                    input.value = newValue;
+                    suggestBox.hidden = true;
+                    input.focus();
+                };
+                items.appendChild(item);
+            });
+            suggestBox.hidden = false;
+        });
+    }
+
+    input.onkeydown = (ev) => {
+        clearTimeout(timeout);
+        suggestBox.hidden = true;
+        let key = ev.code
+        if (key != "Space" && key != "Backspace") {
+            timeout = setTimeout(suggest, 500);
+        }
+    }
+
+    document.addEventListener("mouseup", (ev) => {
+        suggestBox.hidden = true;
+    });
+</script>

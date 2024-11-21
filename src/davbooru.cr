@@ -134,7 +134,7 @@ module Davbooru
   end
 
   get "/post/:id" do |env|
-    kudosd = env.flash["kudosd"]?
+    search_param = URI.encode_www_form(env.params.query["q"]? || "")
     post = nil
     tags = [] of Tag
     db.query "SELECT * FROM posts WHERE id = ? LIMIT 1", env.params.url["id"].to_i64 do |rs|
@@ -158,8 +158,9 @@ module Davbooru
   end
 
   post "/post/:id/edit" do |env|
+    search_param = URI.encode_www_form(env.params.query["q"]? || "")
     post_id = env.params.url["id"]
-    back_url = "/post/#{post_id}"
+    back_url = "/post/#{post_id}?q=#{search_param}"
     tag_string = env.params.body["tags"]
     tag_names = tag_string.strip.split(" ")
     tag_ids = [] of Int64
@@ -215,6 +216,7 @@ module Davbooru
   end
 
   post "/post/:id/kudos" do |env|
+    search_param = URI.encode_www_form(env.params.query["q"]? || "")
     post_id = env.params.url["id"]
     cookie = env.request.cookies["kudos"]?
     env.flash["toast-enabled"] = "true"
@@ -222,7 +224,6 @@ module Davbooru
       env.flash["toast-title"] = "Error"
       env.flash["toast-body"] = "You can't #{nsfw ? "cum" : "send kudos"} to the same post more than once a day."
       env.flash["toast-type"] = "danger"
-      env.redirect "/post/#{post_id}"
     else
       db.exec "UPDATE posts SET kudos = kudos + 1 WHERE id = ?", post_id
       
@@ -230,11 +231,13 @@ module Davbooru
       env.flash["toast-body"] = "Successfully #{nsfw ? "came" : "sent kudos"} to ##{post_id}!"
       env.flash["toast-type"] = "success"
       env.response.cookies << HTTP::Cookie.new(name: "kudos", value: "true", path: "/post/#{post_id}/kudos", expires: (Time.utc() + 1.day).at_beginning_of_day)
-      env.redirect "/post/#{post_id}"
     end
+
+    env.redirect "/post/#{post_id}?q=#{search_param}"
   end
 
   post "/post/:id/delete" do |env|
+    search_param = URI.encode_www_form(env.params.query["q"]? || "")
     post_id = env.params.url["id"]
     blacklist = env.params.body["blacklist"]?
 
@@ -253,11 +256,11 @@ module Davbooru
       env.flash["toast-body"] = "Successfully deleted ##{post_id}."
       env.flash["toast-type"] = "success"
 
-      env.redirect "/search?q=&p=0"
+      env.redirect "/search?q=#{search_param}&p=0"
     rescue e
       message = e
       site_title = "Error | DAVbooru"
-      back_url = "/post/#{post_id}"
+      back_url = "/post/#{post_id}?q=#{search_param}"
       render "src/views/error.ecr", "src/views/layout.ecr"
     end
   end
@@ -433,6 +436,24 @@ module Davbooru
       message = "DAVbooru encountered an error:<br />#{e}"
       render "src/views/error.ecr", "src/views/layout.ecr"
     end
+  end
+
+  #*
+  #* API
+  #*
+
+  get "/api/suggest" do |env|
+    query = env.params.query["q"]?
+    tags = [] of Tag
+
+    db.query "SELECT tags.*, categories.name FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.name LIKE ? ORDER BY tags.name ASC LIMIT 5", "#{query}%" do |rs|
+      rs.each do
+        tags << Tag.from_row(rs)
+      end
+    end
+
+    env.response.content_type = "application/json"
+    tags.to_json
   end
 
   if only_index

@@ -23,7 +23,7 @@
                 <h4 class="m-0"><%= nsfw ? "Cum counter:" : "Kudos:" %> <span id="kudos"><%= post.kudos %></span></h4>
             </div>
             <div class="col-6 text-end">
-                <form action="/post/<%= post.id %>/kudos" method="POST">
+                <form action="/post/<%= post.id %>/kudos?q=<%= search_param %>" method="POST">
                     <input type="submit" class="btn btn-sm btn-outline-success" value="<%= nsfw ? "Cum" : "Send Kudos" %>"></input>
                 </form>
             </div>
@@ -62,18 +62,22 @@
         </div>
     </div>
 </main>
-<div class="modal fade" id="tags-modal" tabindex="-1" aria-labelledby="tags-modal-label" aria-hidden="true">
+<div class="modal fade overflow-hidden" id="tags-modal" tabindex="-1" aria-labelledby="tags-modal-label" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen-sm-down">
         <div class="modal-content">
-            <form action="/post/<%= post.id %>/edit" method="POST" id="tags-form">
+            <form action="/post/<%= post.id %>/edit?q=<%= search_param %>" method="POST" id="tags-form">
                 <div class="modal-header">
                     <h1 class="modal-title fs-5" id="tags-modal-label">Edit tags</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body overflow-visible">
                     <div class="my-2">
                         <label for="tags-text-area" class="form-label">Tag names (separated by spaces)</label>
-                        <textarea name="tags" class="form-control" id="tags-text-area" rows="3"> <%= HTML.escape(tag_names.join(" ")) %></textarea>
+                        <div class="position-relative overflow-visible">
+                            <textarea name="tags" class="form-control" id="tags-text-area" rows="3"> <%= HTML.escape(tag_names.join(" ")) %></textarea>
+                            <% search_id = "tags-text-area" %>
+                            <%= render "./src/views/components/suggestions.ecr" %>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -86,7 +90,7 @@
 <div class="modal fade" id="delete-modal" tabindex="-1" aria-labelledby="delete-modal-label" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
         <div class="modal-content">
-            <form action="/post/<%= post.id %>/delete" method="POST" id="delete-form">
+            <form action="/post/<%= post.id %>/delete?q=<%= search_param %>" method="POST" id="delete-form">
                 <div class="modal-header">
                     <h1 class="modal-title fs-5" id="tags-modal-label">Delete #<%= post.id %>?</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
