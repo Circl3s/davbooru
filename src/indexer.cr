@@ -61,7 +61,7 @@ class Indexer
                                 url = @base_url.resolve(reader.value)
                                 should_ignore = false
                                 @blacklist.each do |wrong|
-                                    should_ignore = url.to_s.includes?(wrong.strip)
+                                    should_ignore = url.to_s.includes?(wrong.strip) && !wrong.blank?
                                 end
                                 next if should_ignore
                                 type = "none"

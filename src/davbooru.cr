@@ -29,7 +29,8 @@ module Davbooru
   testing = false
 
   class ImportantAuthHandler < Kemal::BasicAuth::Handler
-    only ["/tag/edit", "/post/:id/edit", "/tag/:id"]
+    only ["/tag/:id"]
+    only(["/tag/edit", "/post/:id/edit", "/post/:id/delete", "/tag/:id/mass_tag", "/tag/:id/mass_remove"], method: "POST")
 
     def call(context)
       return call_next(context) unless only_match?(context)
@@ -122,17 +123,10 @@ module Davbooru
       paged_posts = posts[(page * QueryBuilder::DEFAULT_PAGE_SIZE)..((page+1) * QueryBuilder::DEFAULT_PAGE_SIZE) - 1]
 
       unless qb.unknown_tags.empty?
-        env.set "toast-enabled", true
-        env.set "toast-title", "Ignoring unknown tags"
-        env.set "toast-body", qb.unknown_tags.join(", ")
-        env.set "toast-type", "warning"
-      end
-
-      if env.flash["affected"]?
-        env.set "toast-enabled", true
-        env.set "toast-title", "Success"
-        env.set "toast-body", "Posts affected: #{env.flash["affected"]?}"
-        env.set "toast-type", "info"
+        env.flash["toast-enabled"] = "true"
+        env.flash["toast-title"] = "Ignoring unknown tags"
+        env.flash["toast-body"] = qb.unknown_tags.join(", ")
+        env.flash["toast-type"] = "warning"
       end
 
       render "src/views/search.ecr", "src/views/layout.ecr"
@@ -140,7 +134,6 @@ module Davbooru
   end
 
   get "/post/:id" do |env|
-    invalid_tags = env.flash["invalid"]?
     kudosd = env.flash["kudosd"]?
     post = nil
     tags = [] of Tag
@@ -159,18 +152,6 @@ module Davbooru
         end
       end
       env.set "thumb", post.thumbnail
-      if invalid_tags
-        env.set "toast-enabled", true
-        env.set "toast-title", "Ignored unknown tags"
-        env.set "toast-body", invalid_tags.split(" ").join(", ")
-        env.set "toast-type", "danger"
-      end
-      if kudosd
-        env.set "toast-enabled", true
-        env.set "toast-title", (kudosd == "ok" ? "Success" : "Error")
-        env.set "toast-body", (kudosd == "ok" ? "Successfully #{nsfw ? "came" : "sent kudos"} to ##{post.id}!" : env.flash["kudosd-message"]? || "Something went wrong.")
-        env.set "toast-type", (kudosd == "ok" ? "success" : "danger")
-      end
       site_title = "Post ##{post.id} | DAVbooru"
       render "src/views/post.ecr", "src/views/layout.ecr"
     end
@@ -211,7 +192,10 @@ module Davbooru
     end
 
     unless invalid_tags.empty?
-      env.flash["invalid"] = invalid_tags.join(", ")
+      env.flash["toast-enabled"] = "true"
+      env.flash["toast-title"] = "Ignored unknown tags"
+      env.flash["toast-body"] = invalid_tags.join(", ")
+      env.flash["toast-type"] = "danger"
     end
 
     env.redirect back_url
@@ -233,16 +217,48 @@ module Davbooru
   post "/post/:id/kudos" do |env|
     post_id = env.params.url["id"]
     cookie = env.request.cookies["kudos"]?
+    env.flash["toast-enabled"] = "true"
     if cookie
-      env.flash["kudosd"] = "error"
-      env.flash["kudosd-message"] = "You can't #{nsfw ? "cum" : "send kudos"} to the same post more than once a day."
+      env.flash["toast-title"] = "Error"
+      env.flash["toast-body"] = "You can't #{nsfw ? "cum" : "send kudos"} to the same post more than once a day."
+      env.flash["toast-type"] = "danger"
       env.redirect "/post/#{post_id}"
     else
       db.exec "UPDATE posts SET kudos = kudos + 1 WHERE id = ?", post_id
-
-      env.flash["kudosd"] = "ok"
+      
+      env.flash["toast-title"] = "Success"
+      env.flash["toast-body"] = "Successfully #{nsfw ? "came" : "sent kudos"} to ##{post_id}!"
+      env.flash["toast-type"] = "success"
       env.response.cookies << HTTP::Cookie.new(name: "kudos", value: "true", path: "/post/#{post_id}/kudos", expires: (Time.utc() + 1.day).at_beginning_of_day)
       env.redirect "/post/#{post_id}"
+    end
+  end
+
+  post "/post/:id/delete" do |env|
+    post_id = env.params.url["id"]
+    blacklist = env.params.body["blacklist"]?
+
+    begin
+      db.transaction do |t|
+        t.connection.exec "DELETE FROM post_tags WHERE post_id = ?", post_id
+        t.connection.exec "DELETE FROM posts WHERE id = ?", post_id
+        t.commit
+      end
+
+      File.delete?("./public/thumb/#{post_id}.webp")
+      File.write("./blacklist.davbooru", "\n" + blacklist, mode: "a") if blacklist
+
+      env.flash["toast-enabled"] = "true"
+      env.flash["toast-title"] = "Success"
+      env.flash["toast-body"] = "Successfully deleted ##{post_id}."
+      env.flash["toast-type"] = "success"
+
+      env.redirect "/search?q=&p=0"
+    rescue e
+      message = e
+      site_title = "Error | DAVbooru"
+      back_url = "/post/#{post_id}"
+      render "src/views/error.ecr", "src/views/layout.ecr"
     end
   end
 
@@ -371,7 +387,10 @@ module Davbooru
         t.commit
       end
 
-      env.flash["affected"] = affected.to_s
+      env.flash["toast-enabled"] = "true"
+      env.flash["toast-title"] = "Success"
+      env.flash["toast-body"] = "Posts affected: #{affected}"
+      env.flash["toast-type"] = "info"
       env.redirect "/search?q=path:\"#{predicate}\"&p=0"
     rescue e
       back_url = "/tag/#{tag_id}"
@@ -403,7 +422,10 @@ module Davbooru
         t.commit
       end
 
-      env.flash["affected"] = affected.to_s
+      env.flash["toast-enabled"] = "true"
+      env.flash["toast-title"] = "Success"
+      env.flash["toast-body"] = "Posts affected: #{affected}"
+      env.flash["toast-type"] = "info"
       env.redirect "/search?q=path:\"#{predicate}\"&p=0"
     rescue e
       back_url = "/tag/#{tag_id}"

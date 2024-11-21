@@ -46,9 +46,12 @@
         <div class="collapse m-2" id="thumb-collapse">
             <img class="w-100 object-fit-contain" style="max-height: 240px;" src="<%= post.thumbnail %>">
         </div>
+        <div class="text-center my-4">
+            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#delete-modal" id="delete">Delete Post</button>
+        </div>
     </aside>
     <div class="col-md-10 order-first order-md-last">
-        <div class="container-fluid position-relative" style="height: 80vh; max-width: 100%;">
+        <div class="container-fluid position-relative" style="height: 80vh; max-width: 100%;" id="content">
             <% if post.type.includes? "video" %>
             <video class="object-fit-contain h-100 w-100" src="<%= post.url %>" controls <%= should_loop ? "loop" : "" %> id="vid"></video>
             <% elsif post.type.includes? "image" %>
@@ -58,85 +61,119 @@
             <% end %>
         </div>
     </div>
-    <div class="modal fade" id="tags-modal" tabindex="-1" aria-labelledby="tags-modal-label" aria-hidden="true">
-        <div class="modal-dialog modal-fullscreen-sm-down">
-            <div class="modal-content">
-                <form action="/post/<%= post.id %>/edit" method="POST" id="tags-form">
-                    <div class="modal-header">
-                        <h1 class="modal-title fs-5" id="tags-modal-label">Edit tags</h1>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</main>
+<div class="modal fade" id="tags-modal" tabindex="-1" aria-labelledby="tags-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <form action="/post/<%= post.id %>/edit" method="POST" id="tags-form">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="tags-modal-label">Edit tags</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="my-2">
+                        <label for="tags-text-area" class="form-label">Tag names (separated by spaces)</label>
+                        <textarea name="tags" class="form-control" id="tags-text-area" rows="3"> <%= HTML.escape(tag_names.join(" ")) %></textarea>
                     </div>
-                    <div class="modal-body">
-                        <div class="my-2">
-                            <label for="tags-text-area" class="form-label">Tag names (separated by spaces)</label>
-                            <textarea name="tags" class="form-control" id="tags-text-area" rows="3"> <%= HTML.escape(tag_names.join(" ")) %></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary">Submit</button>
-                    </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
         </div>
     </div>
-    <script>
-        const tag_edit = document.getElementById("tags-text-area");
-        const fav_btn = document.getElementById("fav");
+</div>
+<div class="modal fade" id="delete-modal" tabindex="-1" aria-labelledby="delete-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <form action="/post/<%= post.id %>/delete" method="POST" id="delete-form">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="tags-modal-label">Delete #<%= post.id %>?</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="my-2 text-center">
+                        Are you sure you want to remove post #<%= post.id %> from the database?<br />
+                        This will <b>not</b> affect the underlying resource and will not prevent it from being indexed again, unless it's deleted from the WebDAV directory or added to the blacklist.
+                    </p>
+                    <div class="d-flex form-check form-switch align-items-center justify-content-center">
+                        <input class="form-check-input" type="checkbox" role="switch" name="blacklist" id="blacklist" value="<%= URI.parse(post.url).path %>">
+                        <label class="form-check-label m-2" for="blacklist">
+                            Add to blacklist
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" aria-label="Cancel">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    const tag_edit = document.getElementById("tags-text-area");
+    const fav_btn = document.getElementById("fav");
 
-        let favs = localStorage.getItem("favourites")?.split(";") ?? [];
-        let is_favourite = favs.includes("<%= post.id %>");
+    let favs = localStorage.getItem("favourites")?.split(";") ?? [];
+    let is_favourite = favs.includes("<%= post.id %>");
 
-        <% if post.type.includes? "video" %>
-        const vid = document.getElementById("vid");
+    <% if post.type.includes? "video" %>
+    const vid = document.getElementById("vid");
 
-        let default_volume = Number(localStorage.getItem("volume") ?? "0.2"); 
-        vid.volume = default_volume;
+    let default_volume = Number(localStorage.getItem("volume") ?? "0.2"); 
+    vid.volume = default_volume;
 
-        vid.onvolumechange = () => {
-            localStorage.setItem("volume", vid.volume);
+    vid.onvolumechange = () => {
+        localStorage.setItem("volume", vid.volume);
+    }
+    <% end %>
+
+    if (is_favourite) {
+        fav_btn.classList.add("btn-danger");
+        fav_btn.innerText = "Unfavourite";
+        fav_btn.onclick = () => {
+            favs = favs.filter(i => i != "<%= post.id %>");
+            localStorage.setItem("favourites", favs.join(";"));
+            window.location.reload();
         }
-        <% end %>
+    } else {
+        fav_btn.classList.add("btn-success");
+        fav_btn.onclick = () => {
+            favs.push("<%= post.id %>");
+            localStorage.setItem("favourites", favs.join(";"));
+            window.location.reload();
+        }
+    }
 
-        if (is_favourite) {
-            fav_btn.classList.add("btn-danger");
-            fav_btn.innerText = "Unfavourite";
-            fav_btn.onclick = () => {
-                favs = favs.filter(i => i != "<%= post.id %>");
-                localStorage.setItem("favourites", favs.join(";"));
-                window.location.reload();
-            }
-        } else {
-            fav_btn.classList.add("btn-success");
-            fav_btn.onclick = () => {
-                favs.push("<%= post.id %>");
-                localStorage.setItem("favourites", favs.join(";"));
-                window.location.reload();
+    // Trick browser into authorization
+    document.getElementById("img")?.addEventListener("error", (ev) => {
+        let fake_video = document.createElement("video");
+        fake_video.onerror = () => {
+            if (!window.location.href.includes("reloaded=1")) {
+                let reload_url = new URL(window.location.href);
+                reload_url.searchParams.append("reloaded", "1");
+                location.replace(reload_url.href);
+            } else {
+                document.getElementById("content").innerHTML = "<h1>It seems like the underlying resource doesn't exist anymore. :(</h1>";
             }
         }
+        fake_video.src = "<%= post.url %>";
+        fake_video.hidden = true;
 
-        // Trick browser into authorization
-        document.getElementById("img")?.addEventListener("error", (ev) => {
-            let fake_video = document.createElement("video");
-            fake_video.onerror = () => {
-                location.reload();
-            }
-            fake_video.src = "<%= post.url %>";
-            fake_video.hidden = true;
+        document.appendChild(fake_video);
+    });
 
-            document.appendChild(fake_video);
-        });
+    document.getElementById("tags-modal").addEventListener("shown.bs.modal", (e) => {
+        tag_edit.focus();
+    });
 
-        document.getElementById("tags-modal").addEventListener("shown.bs.modal", (e) => {
-            tag_edit.focus();
-        });
-
-        tag_edit.onkeydown = (e) => {
-            e = e || event;
-            if (e.keyCode === 13) {
-                e.preventDefault();
-                document.getElementById("tags-form").requestSubmit();
-            }
-            return true;
+    tag_edit.onkeydown = (e) => {
+        e = e || event;
+        if (e.keyCode === 13) {
+            e.preventDefault();
+            document.getElementById("tags-form").requestSubmit();
         }
-    </script>
-</main>
+        return true;
+    }
+</script>
