@@ -250,6 +250,7 @@ module Davbooru
 
       File.delete?("./public/thumb/#{post_id}.webp")
       File.write("./blacklist.davbooru", "\n" + blacklist, mode: "a") if blacklist
+      indexer.update_lists if blacklist
 
       env.flash["toast-enabled"] = "true"
       env.flash["toast-title"] = "Success"

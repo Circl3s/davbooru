@@ -25,6 +25,11 @@ class Indexer
         STDERR.puts "Warning: whitelist is empty. Please populate ./whitelist.davbooru with any folders to index." if @whitelist.empty?
     end
 
+    def update_lists
+        @whitelist = File.read_lines("./whitelist.davbooru")
+        @blacklist = File.read_lines("./blacklist.davbooru")
+    end
+
     def get_total(force_update : Bool = false) : Int64
         if @total_media == nil || force_update
             @total_media = (@db.scalar "SELECT COUNT(id) FROM posts").as(Int64) || -1_i64
@@ -62,6 +67,7 @@ class Indexer
                                 should_ignore = false
                                 @blacklist.each do |wrong|
                                     should_ignore = url.to_s.includes?(wrong.strip) && !wrong.blank?
+                                    break if should_ignore
                                 end
                                 next if should_ignore
                                 type = "none"
