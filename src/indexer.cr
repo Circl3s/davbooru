@@ -3,7 +3,6 @@ require "http/client"
 require "http/headers"
 require "mime"
 require "uri"
-require "uuid"
 require "xml"
 
 class Indexer
@@ -15,6 +14,7 @@ class Indexer
     property tagged_media : Int64?
     property whitelist = [] of String
     property blacklist = [] of String
+    @sqlite_cli : String?
     @backup_number = 0
 
     def initialize(@db, url, @username, @password)
@@ -22,7 +22,10 @@ class Indexer
         @whitelist = File.read_lines("./whitelist.davbooru")
         @blacklist = File.read_lines("./blacklist.davbooru")
 
-        STDERR.puts "Warning: whitelist is empty. Please populate ./whitelist.davbooru with any folders to index." if @whitelist.empty?
+        STDERR.puts "Warning: Whitelist is empty. Please populate ./whitelist.davbooru with any folders to index." if @whitelist.empty?
+
+        @sqlite_cli = Process.find_executable("sqlite3")
+        STDERR.puts "Warning: Couldn't find sqlite3 command-line tool on your system. Automatic backups will not work." if @sqlite_cli.nil?
     end
 
     def update_lists
@@ -46,10 +49,28 @@ class Indexer
         return @tagged_media.not_nil!
     end
 
+    def backup
+        args = [] of String
+        backup_name = "./backup/davbooru.db.#{@backup_number}"
+
+        args << "./davbooru.db"
+        args << ".backup '#{backup_name}'"
+
+        begin
+            raise "sqlite3 command-line tool not found" if @sqlite_cli.nil?
+            status = Process.run(@sqlite_cli.not_nil!, args)
+            if status.success?
+                puts "Backup successfully created at #{backup_name}"
+            else
+                raise status.exit_reason.to_s
+            end
+        rescue e
+            puts "Something went wrong while attempting backup: #{e}"
+        end
+        @backup_number = (@backup_number + 1) % 24
+    end
+
     def run
-        File.copy("./davbooru.db", "./backup/davbooru.db.#{@backup_number}")
-        File.copy("./davbooru.db-shm", "./backup/davbooru.db-shm.#{@backup_number}")
-        File.copy("./davbooru.db-wal", "./backup/davbooru.db-wal.#{@backup_number}")
         puts "Starting indexing..."
         headers = HTTP::Headers.new.add("Authorization", "Basic #{Base64.urlsafe_encode(@username + ":" + @password)}")
         @whitelist.each do |path|
@@ -91,7 +112,6 @@ class Indexer
         end
         puts "Indexing finished!"
         puts "#{get_total(true)} in database, #{get_tagged(true)} of which are tagged."
-        @backup_number = (@backup_number + 1) % 24
     end
 
     def generate_thumbnail(id, url)

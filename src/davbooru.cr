@@ -460,12 +460,11 @@ module Davbooru
   if only_index
     indexer.run
   else
-    unless dont_index
-      spawn do
-        loop do
-          indexer.run
-          sleep 60.minutes
-        end
+    spawn do
+      loop do
+        indexer.backup
+        indexer.run unless dont_index
+        sleep 60.minutes
       end
     end
 
