@@ -9,6 +9,23 @@
     const items = document.getElementById("<%= search_id %>-suggest-items");
     var timeout;
     var typedText = "";
+    var tags = [];
+
+    function complete(tag) {
+        let text = input.value;
+        let previousSpace = text.lastIndexOf(" ", input.selectionStart - 1);
+        let nextSpace = text.indexOf(" ", input.selectionEnd);
+        let begin = previousSpace < 0 ? 0 : previousSpace + 1;
+        let end = nextSpace < 0 ? text.length : nextSpace;
+        let newValue = "";
+        newValue += text.substring(0, begin);
+        newValue += tag.name;
+        newValue += text.substring(end, text.length);
+        newValue += " ";
+        input.value = newValue;
+        suggestBox.hidden = true;
+        input.focus();
+    }
 
     function suggest() {
         let text = input.value;
@@ -22,23 +39,22 @@
         items.innerHTML = "";
 
         fetch(`/api/suggest?q=${encodeURIComponent(word)}`).then(async res => {
-            let tags = await res.json();
-            tags.forEach(tag => {
+            tags = await res.json();
+            tags.forEach((tag, i) => {
                 let item = document.createElement("a");
                 item.classList.add("list-group-item");
                 item.classList.add("list-group-item-action");
                 item.innerText = tag.name;
                 item.style.color = tag.color;
                 item.onclick = () => {
-                    let newValue = "";
-                    newValue += text.substring(0, begin);
-                    newValue += tag.name;
-                    newValue += text.substring(end, text.length);
-                    newValue += " ";
-                    input.value = newValue;
-                    suggestBox.hidden = true;
-                    input.focus();
+                    complete(tag)
                 };
+                if (i == 0) {
+                    let tab = document.createElement("em");
+                    tab.classList.add("text-body-secondary");
+                    tab.innerText = " Tab";
+                    item.appendChild(tab);
+                }
                 items.appendChild(item);
             });
             suggestBox.hidden = false;
@@ -47,14 +63,21 @@
 
     input.addEventListener("keydown", (ev) => {
         clearTimeout(timeout);
-        suggestBox.hidden = true;
         let key = ev.code
-        if (key != "Space" && key != "Backspace") {
+        if (key == "Tab") {
+            if (tags.length > 0) {
+                ev.preventDefault();
+                complete(tags[0])
+            }
+        } else if (!["Space", "Backspace", "Escape"].includes(key)) {
             timeout = setTimeout(suggest, 500);
         }
+        suggestBox.hidden = true;
+        tags = [];
     });
 
     document.addEventListener("mouseup", (ev) => {
         suggestBox.hidden = true;
+        tags = [];
     });
 </script>
