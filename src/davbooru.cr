@@ -137,6 +137,7 @@ module Davbooru
     search_param = URI.encode_www_form(env.params.query["q"]? || "")
     post = nil
     tags = [] of Tag
+    relevant_tags = [] of String
     db.query "SELECT * FROM posts WHERE id = ? LIMIT 1", env.params.url["id"].to_i64 do |rs|
       rs.each do
         post = Post.from_row(rs, indexer)
@@ -148,10 +149,13 @@ module Davbooru
     else
       db.query "SELECT tags.*, categories.name FROM tags JOIN post_tags ON post_tags.tag_id = tags.id JOIN categories ON categories.id = tags.category_id WHERE post_tags.post_id = ? ORDER BY categories.id ASC, tags.name ASC", post.id do |rs|
         rs.each do
-          tags << Tag.from_row(rs)
+          tag = Tag.from_row(rs)
+          relevant_tags << tag.name if [2, 3, 4, 5].includes?(tag.category_id)
+          tags << tag
         end
       end
       env.set "thumb", post.thumbnail
+      env.set "desc", relevant_tags.join(", ")
       site_title = "Post ##{post.id} | DAVbooru"
       render "src/views/post.ecr", "src/views/layout.ecr"
     end

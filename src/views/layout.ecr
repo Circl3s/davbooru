@@ -3,14 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta property="og:title" content="<%= site_title || "DAVbooru" %>">
-    <meta property="og:type" content="website" />
+    <meta name="type" property="og:type" content="website">
+    <title><%= site_title || "DAVbooru" %></title>
+    <meta name="title" property="og:title" content="<%= site_title || "DAVbooru" %>">
+    <meta name="twitter:title" content="<%= site_title || "DAVbooru" %>">
     <% if env.get?("thumb") %>
     <meta property="og:image" content="https://<%= env.request.hostname %><%= env.get? "thumb" %>">
     <meta name="twitter:image" content="https://<%= env.request.hostname %><%= env.get? "thumb" %>">
     <% end %>
-    <meta name="twitter:title" content="<%= site_title || "DAVbooru" %>">
-    <title><%= site_title || "DAVbooru" %></title>
+    <% if env.get?("desc") %>
+    <meta name="description" property="og:description" content="<%= env.get? "desc" %>">
+    <meta name="twitter:description" content="<%= env.get? "desc" %>">
+    <% else %>
+    <meta name="description" property="og:description" content="A private WebDAV imageboard instance.">
+    <meta name="twitter:description" content="A private WebDAV imageboard instance.">
+    <% end %>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 </head>
 <body data-bs-theme="dark">
