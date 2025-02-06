@@ -8,10 +8,10 @@
     const suggestBox = document.getElementById("<%= search_id %>-suggest");
     const items = document.getElementById("<%= search_id %>-suggest-items");
     var timeout;
-    var typedText = "";
     var tags = [];
+    var negative = false;
 
-    function complete(tag) {
+    function complete(tag, negative = false) {
         let text = input.value;
         let previousSpace = text.lastIndexOf(" ", input.selectionStart - 1);
         let nextSpace = text.indexOf(" ", input.selectionEnd);
@@ -19,6 +19,9 @@
         let end = nextSpace < 0 ? text.length : nextSpace;
         let newValue = "";
         newValue += text.substring(0, begin);
+        if (negative) {
+            newValue += "-"
+        }
         newValue += tag.name;
         newValue += text.substring(end, text.length);
         newValue += " ";
@@ -28,6 +31,7 @@
     }
 
     function suggest() {
+        negative = false;
         let text = input.value;
         let previousSpace = text.lastIndexOf(" ", input.selectionStart - 1);
         let nextSpace = text.indexOf(" ", input.selectionEnd);
@@ -35,10 +39,14 @@
         let end = nextSpace < 0 ? text.length : nextSpace;
 
         let word = text.substring(begin, end);
+        if (word.startsWith("-")) {
+            negative = true;
+            word = text.substring(begin + 1, end);
+        }
 
         items.innerHTML = "";
 
-        fetch(`/api/suggest?q=${encodeURIComponent(word)}`).then(async res => {
+        fetch(`/api/suggest?q=${encodeURIComponent(word)}${(input.hasAttribute("data-no-pseudo") || negative) ? "&nopseudo=1" : ""}`).then(async res => {
             tags = await res.json();
             tags.forEach((tag, i) => {
                 let item = document.createElement("a");
@@ -47,7 +55,7 @@
                 item.innerText = tag.name;
                 item.style.color = tag.color;
                 item.onclick = () => {
-                    complete(tag)
+                    complete(tag, negative)
                 };
                 if (i == 0) {
                     let tab = document.createElement("em");
@@ -67,7 +75,7 @@
         if (key == "Tab") {
             if (tags.length > 0) {
                 ev.preventDefault();
-                complete(tags[0])
+                complete(tags[0], negative)
             }
         } else if (!["Space", "Backspace", "Escape"].includes(key)) {
             timeout = setTimeout(suggest, 500);

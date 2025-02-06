@@ -448,8 +448,31 @@ module Davbooru
   #*
 
   get "/api/suggest" do |env|
-    query = env.params.query["q"]?
+    query = env.params.query["q"]? || ""
+    nopseudo = (env.params.query["nopseudo"]? || "") === "1"
     tags = [] of Tag
+
+    if (query.includes?("sort:") && !nopseudo)
+      filter = query.lchop "sort:"
+      possible_matches = [] of String
+      QueryBuilder::SORTING_TYPES.keys.each do |key|
+        possible_matches << key unless (key.includes?("cum") && !nsfw)
+      end
+      if query.matches? /sort:.*:/
+        possible_matches.each do |key|
+          if key.matches? /^#{filter}/
+            tags << Tag.pseudo("sort:#{key}")
+          end
+        end
+      else
+        possible_matches.each do |key|
+          if (key.matches?(/^#{filter}/) && !key.includes?(":"))
+            tags << Tag.pseudo("sort:#{key}")
+          end
+        end
+      end
+      tags.to_json
+    end
 
     db.query "SELECT tags.*, categories.name FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.name LIKE ? ORDER BY tags.name ASC LIMIT 5", "#{query}%" do |rs|
       rs.each do

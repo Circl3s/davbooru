@@ -40,6 +40,10 @@ class Tag
         return tag.not_nil!
     end
 
+    def self.pseudo(name : String)
+        return Tag.new(0, name, 1, nil, "", "Pseudo-tag")
+    end
+
     def parent(db : DB::Database)
         if @parent_id.nil?
             return nil

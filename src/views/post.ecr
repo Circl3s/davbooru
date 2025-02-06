@@ -74,7 +74,7 @@
                     <div class="my-2">
                         <label for="tags-text-area" class="form-label">Tag names (separated by spaces)</label>
                         <div class="position-relative overflow-visible">
-                            <textarea name="tags" class="form-control" id="tags-text-area" rows="3"> <%= HTML.escape(tag_names.join(" ")) %></textarea>
+                            <textarea name="tags" class="form-control" id="tags-text-area" rows="3" data-no-pseudo> <%= HTML.escape(tag_names.join(" ")) %></textarea>
                             <% search_id = "tags-text-area" %>
                             <%= render "./src/views/components/suggestions.ecr" %>
                         </div>
