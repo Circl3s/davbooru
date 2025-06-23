@@ -9,13 +9,13 @@ DAVbooru is a simple danbooru-style imageboard for all your private media availa
 - Make sure the media will be available on the same path as the end user!
 3. Configure whitelist and blacklist.
   - Create `whitelist.davbooru` and `blacklist.davbooru` in the same directory as the executable.
-  - Specify the paths you want to index over WebDAV in the whitelist, and any phrases you want toexclude from indexing in the blacklist, one path per line, no special syntax.
+  - Specify the paths you want to index over WebDAV in the whitelist, and any phrases you want to exclude from indexing in the blacklist, one entry per line, no special syntax.
 4. Launch DAVbooru and give it the correct credentials.
 
 ## Usage
 
 Basic command:
 ```
-davbooru -u <username/email> -p <password> 
+davbooru -u <username or email> -p <password> --url <url of the WebDAV server>
 ```
 For more details run `davbooru --help`.
