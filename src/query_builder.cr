@@ -13,18 +13,18 @@ class QueryBuilder
     MAX_QUERY_CACHE = 128
     DEFAULT_PAGE_SIZE = 24
     SORTING_TYPES = {
-        "id" => "posts.id DESC",
-        "id:desc" => "posts.id DESC",
-        "id:asc" => "posts.id ASC",
-        "kudos" => "posts.kudos DESC",
-        "kudos:desc" => "posts.kudos DESC",
-        "kudos:asc" => "posts.kudos ASC",
-        "cum" => "posts.kudos DESC",
-        "cum:desc" => "posts.kudos DESC",
-        "cum:asc" => "posts.kudos ASC",
-        "score" => "posts.kudos DESC",
-        "score:desc" => "posts.kudos DESC",
-        "score:asc" => "posts.kudos ASC",
+        "id" => "id DESC",
+        "id:desc" => "id DESC",
+        "id:asc" => "id ASC",
+        "kudos" => "kudos DESC",
+        "kudos:desc" => "kudos DESC",
+        "kudos:asc" => "kudos ASC",
+        "cum" => "kudos DESC",
+        "cum:desc" => "kudos DESC",
+        "cum:asc" => "kudos ASC",
+        "score" => "kudos DESC",
+        "score:desc" => "kudos DESC",
+        "score:asc" => "kudos ASC",
         "random" => "RANDOM()"
     }
     
