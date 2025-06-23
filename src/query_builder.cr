@@ -119,7 +119,7 @@ GROUP BY posts.id"
             selects << "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id#{@path_filter.nil? ? "" : " WHERE url LIKE ?"} GROUP BY posts.id"
         end
 
-        @sql = "#{ctes.empty? ? "" : "WITH RECURSIVE "}#{ctes.join(", ")} #{selects.join(" INTERSECT ")}#{negative_selects.empty? ? "" : " EXCEPT "}#{negative_selects.join(" EXCEPT ")}"
+        @sql = "#{ctes.empty? ? "" : "WITH RECURSIVE "}#{ctes.join(", ")} SELECT * FROM (#{selects.join(" INTERSECT ")}#{negative_selects.empty? ? "" : " EXCEPT "}#{negative_selects.join(" EXCEPT ")})"
         @@cache << self
         return @sql + page_sql
     end
