@@ -1,15 +1,4 @@
 class QueryBuilder
-    @db : DB::Database
-    getter text : String
-    property page : Int64
-    @sql : String = ""
-    getter unknown_tags = [] of String
-    getter valid_tags = [] of String
-    property sorting = "posts.id DESC"
-    property path_filter : String?
-
-    @@cache = [] of QueryBuilder
-
     MAX_QUERY_CACHE = 128
     DEFAULT_PAGE_SIZE = 24
     SORTING_TYPES = {
@@ -27,6 +16,19 @@ class QueryBuilder
         "score:asc" => "kudos ASC",
         "random" => "RANDOM()"
     }
+
+    @db : DB::Database
+    getter text : String
+    property page : Int64
+    @sql : String = ""
+    getter unknown_tags = [] of String
+    getter valid_tags = [] of String
+    property sorting : String = SORTING_TYPES["id"]
+    property path_filter : String?
+
+    @@cache = [] of QueryBuilder
+
+    
     
     def initialize(@db, @text = "", @page = 0)
         # Extract path filter
