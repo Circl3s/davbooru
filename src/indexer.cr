@@ -81,23 +81,108 @@ class Indexer
                 client.exec("PROPFIND", path, headers) do |res|
                     reader = XML::Reader.new(res.body_io)
                     @db.transaction do |t|
-                        while reader.read == true
-                            if reader.name == "D:href"
-                                reader.read
-                                url = @base_url.resolve(reader.value)
-                                should_ignore = false
-                                @blacklist.each do |wrong|
-                                    should_ignore = url.to_s.includes?(wrong.strip) && !wrong.blank?
-                                    break if should_ignore
+                        current_href = ""
+                        current_etag = ""
+                        
+                        while reader.read
+                            if reader.node_type == XML::Reader::Type::ELEMENT
+                                if reader.name == "D:href"
+                                    reader.read
+                                    current_href = reader.value
+                                elsif reader.name == "D:getetag"
+                                    reader.read
+                                    current_etag = reader.value
                                 end
-                                next if should_ignore
-                                type = "none"
-                                begin
-                                    type = MIME.from_filename(url.to_s)
-                                rescue
-                                end
-                                if (type.includes?("image") || type.includes?("video"))
-                                    t.connection.exec "INSERT OR IGNORE INTO posts VALUES(NULL, ?, 0)", url.to_s
+                            elsif reader.node_type == XML::Reader::Type::END_ELEMENT
+                                if reader.name == "D:response"
+                                    # Process the response
+                                    next if current_href.blank?
+                                    
+                                    url = @base_url.resolve(current_href)
+                                    should_ignore = false
+                                    @blacklist.each do |wrong|
+                                        should_ignore = url.to_s.includes?(wrong.strip) && !wrong.blank?
+                                        break if should_ignore
+                                    end
+                                    
+                                    if !should_ignore
+                                        type = "none"
+                                        begin
+                                            type = MIME.from_filename(url.to_s)
+                                        rescue
+                                        end
+                                        
+                                        if (type.includes?("image") || type.includes?("video"))
+                                            # Check if URL already exists (Retroactive fill / No change)
+                                            existing_id_by_url = nil
+                                            t.connection.query "SELECT id FROM posts WHERE url = ?", url.to_s do |rs|
+                                                rs.each do
+                                                    existing_id_by_url = rs.read(Int64)
+                                                end
+                                            end
+
+                                            if existing_id_by_url
+                                                # Update etag if needed
+                                                if !current_etag.blank?
+                                                    t.connection.exec "UPDATE posts SET etag = ? WHERE id = ?", current_etag, existing_id_by_url
+                                                end
+                                            else
+                                                # Check if Etag exists (Potential Move or Duplicate)
+                                                move_candidate_id = nil
+                                                
+                                                if !current_etag.blank?
+                                                    t.connection.query "SELECT id, url FROM posts WHERE etag = ?", current_etag do |rs|
+                                                        rs.each do
+                                                            candidate_id = rs.read(Int64)
+                                                            candidate_url = rs.read(String)
+                                                            
+                                                            # Check if candidate URL still exists
+                                                            candidate_exists = true
+                                                            begin
+                                                                check_uri = URI.parse(candidate_url)
+                                                                check_client = HTTP::Client.new(check_uri)
+                                                                check_client.connect_timeout = 5.seconds
+                                                                check_client.read_timeout = 5.seconds
+                                                                check_client.exec("HEAD", check_uri.request_target, headers) do |check_res|
+                                                                    if check_res.status_code == 404
+                                                                        candidate_exists = false
+                                                                    end
+                                                                end
+                                                                check_client.close
+                                                            rescue
+                                                                # If check fails, assume it exists to be safe (treat as duplicate)
+                                                            end
+
+                                                            if !candidate_exists
+                                                                move_candidate_id = candidate_id
+                                                                break # Found a valid move source
+                                                            end
+                                                        end
+                                                    end
+                                                end
+
+                                                if move_candidate_id
+                                                    # Move detected (Old file is gone)
+                                                    puts "Move detected: ID #{move_candidate_id} -> #{url}"
+                                                    begin
+                                                        t.connection.exec "UPDATE posts SET url = ? WHERE id = ?", url.to_s, move_candidate_id
+                                                    rescue
+                                                        # Collision (Shouldn't happen if we checked URL first, but just in case)
+                                                        puts "Collision during move for #{url}. Deleting conflict."
+                                                        t.connection.exec "DELETE FROM posts WHERE url = ?", url.to_s
+                                                        t.connection.exec "UPDATE posts SET url = ? WHERE id = ?", url.to_s, move_candidate_id
+                                                    end
+                                                else
+                                                    # Duplicate or New File
+                                                    t.connection.exec "INSERT OR IGNORE INTO posts VALUES(NULL, ?, 0, ?)", url.to_s, current_etag
+                                                end
+                                            end
+                                        end
+                                    end
+                                    
+                                    # Reset for next response
+                                    current_href = ""
+                                    current_etag = ""
                                 end
                             end
                         end

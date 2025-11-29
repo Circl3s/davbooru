@@ -60,6 +60,11 @@
             <h1>Unknown media, sorry. :(</h1>
             <% end %>
         </div>
+        <% unless duplicates.empty? %>
+        <div class="alert my-4 alert-warning" role="alert">
+            Duplicate posts found: <% duplicates.each do |dup| %><a href="/post/<%= dup.id %>">#<%= dup.id %></a> <% end %>
+        </div>      
+        <% end %>
     </div>
 </main>
 <div class="modal fade overflow-hidden" id="tags-modal" tabindex="-1" aria-labelledby="tags-modal-label" aria-hidden="true">

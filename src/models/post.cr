@@ -5,15 +5,16 @@ class Post
     getter id : Int64
     getter url : String
     getter kudos : Int64
+    getter etag : String?
     setter thumbnail : String?
     @indexer : Indexer
 
-    def initialize(@id, @url, @kudos, @indexer)
+    def initialize(@id, @url, @kudos, @etag, @indexer)
 
     end
 
     def self.from_row(row : DB::ResultSet, indexer : Indexer)
-        return self.new(row.read(Int64), row.read(String), row.read(Int64), indexer)
+        return self.new(row.read(Int64), row.read(String), row.read(Int64), row.read(String?), indexer)
     end
 
     def type

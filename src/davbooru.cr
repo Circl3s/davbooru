@@ -79,6 +79,14 @@ module Davbooru
   end
 
   db = DB.open("sqlite3://./#{testing ? "test" : "davbooru"}.db?journal_mode=wal&synchronous=normal&foreign_keys=true")
+  
+  # Migration: Add etag column if it doesn't exist
+  begin
+    db.exec "ALTER TABLE posts ADD COLUMN etag TEXT"
+  rescue
+    # Column likely already exists
+  end
+
   indexer = Indexer.new(db, base_url, username, password)
 
   Kemal::Session.config.secret = ":)"
@@ -154,6 +162,16 @@ module Davbooru
           tags << tag
         end
       end
+
+      duplicates = [] of Post
+      if post.etag
+        db.query "SELECT * FROM posts WHERE etag = ? AND id != ?", post.etag, post.id do |rs|
+          rs.each do
+            duplicates << Post.from_row(rs, indexer)
+          end
+        end
+      end
+
       env.set "thumb", post.thumbnail
       env.set "desc", relevant_tags.join(", ")
       site_title = "Post ##{post.id} | DAVbooru"
