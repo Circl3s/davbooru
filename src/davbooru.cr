@@ -13,6 +13,7 @@ require "./indexer"
 
 require "./models/post"
 require "./models/tag"
+require "./models/album"
 
 module Davbooru
   extend self
@@ -87,6 +88,20 @@ module Davbooru
     # Column likely already exists
   end
 
+  # Migration: Create albums table
+  begin
+    db.exec "CREATE TABLE IF NOT EXISTS albums (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT)"
+  rescue e
+    puts "Error creating albums table: #{e}"
+  end
+
+  # Migration: Create album_posts table
+  begin
+    db.exec "CREATE TABLE IF NOT EXISTS album_posts (album_id INTEGER NOT NULL, post_id INTEGER NOT NULL, \"order\" INTEGER NOT NULL, PRIMARY KEY (album_id, post_id), FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE, FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE)"
+  rescue e
+    puts "Error creating album_posts table: #{e}"
+  end
+
   indexer = Indexer.new(db, base_url, username, password)
 
   Kemal::Session.config.secret = ":)"
@@ -146,6 +161,10 @@ module Davbooru
     post = nil
     tags = [] of Tag
     relevant_tags = [] of String
+    album_id = env.params.query["album"]?
+    album = nil
+    album_posts = [] of Post
+
     db.query "SELECT * FROM posts WHERE id = ? LIMIT 1", env.params.url["id"].to_i64 do |rs|
       rs.each do
         post = Post.from_row(rs, indexer)
@@ -170,6 +189,23 @@ module Davbooru
             duplicates << Post.from_row(rs, indexer)
           end
         end
+      end
+
+      all_albums = [] of Album
+      db.query "SELECT albums.* FROM albums JOIN album_posts ON albums.id = album_posts.album_id WHERE album_posts.post_id = ?", post.id do |rs|
+        rs.each do
+          all_albums << Album.from_row(rs)
+        end
+      end
+
+      if album_id
+        db.query "SELECT * FROM albums WHERE id = ? LIMIT 1", album_id.to_i64 do |rs|
+          rs.each do
+            album = Album.from_row(rs)
+            album_posts = album.posts(db, indexer)
+          end
+        end
+        current_post_index = album_posts.map { |p| p.id }.index(post.id)
       end
 
       env.set "thumb", post.thumbnail
@@ -461,6 +497,157 @@ module Davbooru
     end
   end
 
+  # Albums
+
+  get "/albums" do |env|
+    albums = [] of Album
+    first_posts = [] of Post?
+    db.query "SELECT * FROM albums ORDER BY id DESC" do |rs|
+      rs.each do
+        album = Album.from_row(rs)
+        albums << album
+        post = album.posts(db, indexer).first?
+        first_posts << post
+      end
+    end
+    site_title = "Albums | DAVbooru"
+    render "src/views/albums.ecr", "src/views/layout.ecr"
+  end
+
+  post "/albums/create" do |env|
+    name = env.params.body["name"]
+    description = env.params.body["description"]
+    
+    begin
+      db.exec "INSERT INTO albums (name, description) VALUES (?, ?)", name, description
+      env.flash["toast-enabled"] = "true"
+      env.flash["toast-title"] = "Success"
+      env.flash["toast-body"] = "Album created successfully"
+      env.flash["toast-type"] = "success"
+      env.redirect "/albums"
+    rescue e
+      env.flash["toast-enabled"] = "true"
+      env.flash["toast-title"] = "Error"
+      env.flash["toast-body"] = "Error creating album: #{e.message}"
+      env.flash["toast-type"] = "danger"
+      env.redirect "/albums"
+    end
+  end
+
+  get "/album/:id" do |env|
+    id = env.params.url["id"].to_i64
+    album = nil
+    db.query "SELECT * FROM albums WHERE id = ?", id do |rs|
+      rs.each do
+        album = Album.from_row(rs)
+      end
+    end
+
+    if album
+      posts = album.posts(db, indexer)
+      thumbnail = posts.first?.nil? ? "/thumb/placeholder.webp" : posts.first.thumbnail
+
+      env.set "thumb", thumbnail
+      env.set "desc", album.description
+      site_title = "#{album.name} | DAVbooru"
+      render "src/views/album.ecr", "src/views/layout.ecr"
+    else
+      back_url = "/albums"
+      site_title = "Error | DAVbooru"
+      message = "Album not found"
+      render "src/views/error.ecr", "src/views/layout.ecr"
+    end
+  end
+
+  post "/album/:id/edit" do |env|
+    id = env.params.url["id"].to_i64
+    name = env.params.body["name"]
+    description = env.params.body["description"]
+    
+    begin
+      db.exec "UPDATE albums SET name = ?, description = ? WHERE id = ?", name, description, id
+      env.flash["toast-enabled"] = "true"
+      env.flash["toast-title"] = "Success"
+      env.flash["toast-body"] = "Album edited successfully"
+      env.flash["toast-type"] = "success"
+      env.redirect "/album/#{id}"
+    rescue e
+      back_url = "/album/#{id}"
+      site_title = "Error | DAVbooru"
+      message = "Error editing album: #{e.message}"
+      render "src/views/error.ecr", "src/views/layout.ecr"
+    end
+  end
+
+  post "/album/:id/add" do |env|
+    album_id = env.params.url["id"].to_i64
+    post_id = env.params.body["post_id"].to_i64
+
+    valid_album = begin db.scalar("SELECT 1 FROM albums WHERE id = ?", album_id).as(Int64?) rescue nil end
+    valid_post = begin db.scalar("SELECT 1 FROM posts WHERE id = ?", post_id).as(Int64?) rescue nil end
+    
+    if valid_album.nil?
+      env.flash["toast-enabled"] = "true"
+      env.flash["toast-title"] = "Error"
+      env.flash["toast-body"] = "Album not found"
+      env.flash["toast-type"] = "danger"
+      env.redirect "/post/#{post_id}"
+    elsif valid_post.nil?
+      env.flash["toast-enabled"] = "true"
+      env.flash["toast-title"] = "Error"
+      env.flash["toast-body"] = "Post not found"
+      env.flash["toast-type"] = "danger"
+      env.redirect "/album/#{album_id}"
+    else
+      # Get max order
+      max_order = 0
+      max_order = db.scalar("SELECT MAX(\"order\") FROM album_posts WHERE album_id = ?", album_id).as(Int64?) || 0
+      
+      begin
+        db.exec "INSERT OR IGNORE INTO album_posts (album_id, post_id, \"order\") VALUES (?, ?, ?)", album_id, post_id, max_order + 1
+        env.flash["toast-enabled"] = "true"
+        env.flash["toast-title"] = "Success"
+        env.flash["toast-body"] = "Post ##{post_id} added to album successfully"
+        env.flash["toast-type"] = "success"
+        env.redirect "/album/#{album_id}"
+      rescue e
+        back_url = "/album/#{album_id}"
+        site_title = "Error | DAVbooru"
+        message = "Error adding post to album: #{e.message}"
+        render "src/views/error.ecr", "src/views/layout.ecr"
+      end
+    end
+  end
+
+  post "/album/:id/remove" do |env|
+    album_id = env.params.url["id"].to_i64
+    post_id = env.params.body["post_id"].to_i64
+    
+    db.exec "DELETE FROM album_posts WHERE album_id = ? AND post_id = ?", album_id, post_id
+    env.redirect "/album/#{album_id}"
+  end
+
+  post "/album/:id/delete" do |env|
+    album_id = env.params.url["id"].to_i64
+    db.exec "DELETE FROM albums WHERE id = ?", album_id
+    env.redirect "/albums"
+  end
+
+  post "/album/:id/reorder" do |env|
+    album_id = env.params.url["id"].to_i64
+    post_ids_str = env.params.body["post_ids"]?
+    if post_ids_str
+      post_ids = post_ids_str.split(",").map(&.to_i64)
+      db.transaction do |t|
+        post_ids.each_with_index do |pid, index|
+          t.connection.exec "UPDATE album_posts SET \"order\" = ? WHERE album_id = ? AND post_id = ?", index + 1, album_id, pid
+        end
+        t.commit
+      end
+    end
+    env.redirect "/album/#{album_id}"
+  end
+
   #*
   #* API
   #*
@@ -507,7 +694,7 @@ module Davbooru
   else
     spawn do
       loop do
-        indexer.backup
+        indexer.backup unless testing
         indexer.run unless dont_index
         sleep 60.minutes
       end

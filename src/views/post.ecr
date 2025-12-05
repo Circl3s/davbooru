@@ -33,7 +33,34 @@
         <p class="text-nowrap text-center font-monospace overflow-x-scroll p-2 bg-secondary-subtle" style="direction: rtl;"><%= HTML.escape(post.name) %></p>
         <b>Path:</b>
         <p class="text-nowrap text-center font-monospace overflow-x-scroll p-2 bg-secondary-subtle" style="direction: rtl;"><%= HTML.escape(post.path) %></p>
-        <div class="row align-items-center justify-content-between">
+        <div class="row mb-2 align-items-center justify-content-between">
+            <div class="col-3">
+                <b>Albums:</b>
+            </div>
+            <div class="col-3 text-end">
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#album-collapse" aria-expanded="false" aria-controls="album-collapse">
+                    Show
+                </button>
+            </div>
+        </div>
+        <div class="collapse" id="album-collapse">
+            <div class="m-2 list-group">
+                <% all_albums.each do |album| %>
+                    <a href="/album/<%= album.id %>" class="list-group-item list-group-item-action text-truncate" title="<%= HTML.escape(album.name) %>"><%= HTML.escape(album.name) %></a>
+                <% end %>
+            </div>
+            <form class="p-2 needs-validation" action="/album/-1/add" method="POST" id="album-form" novalidate>
+                <div class="input-group has-validation">
+                    <input type="text" class="form-control" placeholder="Album ID or URL" id="album-id" required>
+                    <input type="hidden" name="post_id" value="<%= post.id %>">
+                    <button class="btn btn-outline-success" type="submit">Add</button>
+                    <div class="mx-2 invalid-feedback text-nowrap">
+                        Please enter a valid Album ID or URL.
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="row mb-2 align-items-center justify-content-between">
             <div class="col-3">
                 <b>Thumbnail:</b>
             </div>
@@ -60,6 +87,17 @@
             <h1>Unknown media, sorry. :(</h1>
             <% end %>
         </div>
+        <% unless album.nil? %>
+        <div class="alert my-4 alert-info d-flex align-items-center justify-content-between" role="alert">
+            <% previous_post_index = current_post_index.not_nil! - 1 %>
+            <% next_post_index = current_post_index.not_nil! + 1 %>
+            <% previous_post = album_posts[previous_post_index]? %>
+            <% next_post = album_posts[next_post_index]? %>
+            <a href="/post/<%= previous_post.id if previous_post %>?album=<%= album.id %>" class="btn btn-sm btn-outline-info <%= previous_post_index < 0 ? "invisible" : "" %>">Previous</a>
+            <p class="my-0">You're viewing this post as part of <a href="/album/<%= album.id %>"><%= album.name %></a>. <small>(<%= current_post_index.not_nil! + 1 %> of <%= album_posts.size %>)</small></p>
+            <a href="/post/<%= next_post.id if next_post %>?album=<%= album.id %>" class="btn btn-sm btn-outline-info <%= next_post_index >= album_posts.size ? "invisible" : "" %>">Next</a>
+        </div>
+        <% end %>
         <% unless duplicates.empty? %>
         <div class="alert my-4 alert-warning" role="alert">
             Duplicate posts found: <% duplicates.each do |dup| %><a href="/post/<%= dup.id %>">#<%= dup.id %></a> <% end %>
@@ -138,6 +176,12 @@
     }
     <% end %>
 
+    let last_album_id = localStorage.getItem("last_album_id");
+    if (last_album_id) {
+        document.getElementById("album-form").action = `/album/${last_album_id}/add`;
+        document.getElementById("album-id").value = last_album_id;
+    }
+
     if (is_favourite) {
         fav_btn.classList.add("btn-danger");
         fav_btn.innerText = "Unfavourite";
@@ -154,6 +198,43 @@
             window.location.reload();
         }
     }
+
+    document.getElementById("album-form")?.addEventListener("submit", (ev) => {
+        ev.preventDefault();
+        let album_id = document.getElementById("album-id").value;
+        let form = document.getElementById("album-form");
+
+        if (album_id.startsWith("http")) {
+            try {
+                const url = new URL(album_id);
+                const pathSegments = url.pathname.split('/').filter(segment => segment !== '');
+                if (pathSegments.length > 0) {
+                    const lastSegment = pathSegments[pathSegments.length - 1];
+                    if (/^\d+$/.test(lastSegment)) {
+                        document.getElementById("album-id").value = lastSegment;
+                    }
+                }
+                album_id = document.getElementById("album-id").value;
+
+                form.classList.add("was-validated");
+                form.action = `/album/${album_id}/add`;
+
+                localStorage.setItem("last_album_id", album_id);
+                form.submit();
+            } catch (error) {
+                console.error("Invalid URL:", error);
+                document.getElementById("album-id").classList.add("is-invalid");
+            }
+        } else if (/^\d+$/.test(album_id)) {
+            form.classList.add("was-validated");
+            form.action = `/album/${album_id}/add`;
+
+            localStorage.setItem("last_album_id", album_id);
+            form.submit();
+        } else {
+            document.getElementById("album-id").classList.add("is-invalid");
+        }
+    })
 
     // Trick browser into authorization
     document.getElementById("img")?.addEventListener("error", (ev) => {
