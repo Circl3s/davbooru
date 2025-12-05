@@ -31,7 +31,7 @@ module Davbooru
 
   class ImportantAuthHandler < Kemal::BasicAuth::Handler
     only ["/tag/:id"]
-    only(["/tag/edit", "/post/:id/edit", "/post/:id/delete", "/tag/:id/mass_tag", "/tag/:id/mass_remove"], method: "POST")
+    only(["/tag/edit", "/post/:id/edit", "/post/:id/delete", "/tag/:id/mass_tag", "/tag/:id/mass_remove", "/albums/create", "/album/:id/delete", "/album/:id/add", "/album/:id/remove", "/album/:id/edit", "/album/:id/reorder"], method: "POST")
 
     def call(context)
       return call_next(context) unless only_match?(context)
