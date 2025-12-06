@@ -14,6 +14,10 @@ class Wiki
 
     def self.all_articles
         articles = [] of Wiki
+        Dir.children("./public/articles/default").map do |file|
+            wiki = Wiki.from_path("default/#{file}")
+            articles << wiki if wiki
+        end
         Dir.children("./public/articles").map do |file|
             wiki = Wiki.from_path(file)
             articles << wiki if wiki

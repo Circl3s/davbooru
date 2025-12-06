@@ -44,10 +44,11 @@ module Davbooru
   Dir.mkdir_p("./public/thumb/") unless Dir.exists?("./public/thumb/")
   File.copy("./default.db", "./davbooru.db") unless File.exists?("./davbooru.db")
 
-  unless Dir.exists?("./public/articles/")
+  unless Dir.exists?("./public/articles/default")
+    Dir.mkdir_p("./public/articles/") unless Dir.exists?("./public/articles/")
     git = Process.find_executable("git")
     if git
-      Process.run(git, ["clone", "https://github.com/Circl3s/davbooru.wiki.git", "./public/articles"])
+      Process.run(git, ["clone", "https://github.com/Circl3s/davbooru.wiki.git", "./public/articles/default"])
     else
       STDERR.puts "Git not found. Default wiki articles will not be available."
     end
