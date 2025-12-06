@@ -714,7 +714,18 @@ module Davbooru
       tags.to_json
     end
 
-    db.query "SELECT tags.*, categories.name FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.name LIKE ? ORDER BY tags.name ASC LIMIT 5", "#{query}%" do |rs|
+    abbr_query = query.each_char.map_with_index do |c, i|
+      if i == query.size - 1
+        "#{c}%"
+      else
+        "#{c}%\\_"
+      end
+    end.join
+
+    db.query "SELECT tags.*, categories.name FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.name LIKE ? ESCAPE '\\' \
+      UNION \
+      SELECT tags.*, categories.name FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.name LIKE ? \
+      ORDER BY tags.name ASC LIMIT 5", "#{abbr_query}", "#{query}%" do |rs|
       rs.each do
         tags << Tag.from_row(rs)
       end
