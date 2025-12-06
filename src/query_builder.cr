@@ -25,18 +25,27 @@ class QueryBuilder
     getter valid_tags = [] of String
     property sorting : String = SORTING_TYPES["id"]
     property path_filter : String?
+    property album_filter : Int64?
 
     @@cache = [] of QueryBuilder
 
     
     
     def initialize(@db, @text = "", @page = 0)
-        # Extract path filter
-        raw_path_filter = (@text.match(/path:"([^"]+)"/) || [] of String)[1]?
+        # Extract advanced filters
+        raw_path_filter = (@text.match(/path:(?:\"([^\"]+)\"|(\S+))/) || [] of String)[1]? || (@text.match(/path:(?:\"([^\"]+)\"|(\S+))/) || [] of String)[2]?
+        raw_album_filter = (@text.match(/(?:album|pool):(\d+)/) || [] of String)[1]?
+
         if raw_path_filter
-            @valid_tags << ((@text.match(/path:"([^"]+)"/) || [] of String)[0]? || "")
+            @valid_tags << ((@text.match(/path:(?:\"([^\"]+)\"|(\S+))/) || [] of String)[1]? || (@text.match(/path:(?:\"([^\"]+)\"|(\S+))/) || [] of String)[2]? || "")
             @path_filter = URI.encode_path(raw_path_filter)
         end
+        if raw_album_filter
+            @valid_tags << ((@text.match(/(?:album|pool):(\d+)/) || [] of String)[0]? || "")
+            @album_filter = raw_album_filter.to_i64
+        end
+
+        @text = @text.gsub(/path:(?:\"([^\"]+)\"|(\S+))/, "").gsub(/(?:album|pool):(\d+)/, "")
     end
 
     def text=(@text)
@@ -48,7 +57,6 @@ class QueryBuilder
     end
 
     def page_sql
-        # return " ORDER BY posts.id DESC LIMIT #{DEFAULT_PAGE_SIZE} OFFSET #{DEFAULT_PAGE_SIZE * @page}"
         return " ORDER BY #{@sorting}"
     end
 
@@ -61,11 +69,13 @@ class QueryBuilder
         selects = [] of String
         negative_selects = [] of String
 
-        working_text = @text.sub(/path:"([^"]+)"/, "")
+        working_text = @text
 
         tag_names = working_text.strip.split(" ")
         tag_names.each do |name|
             next if name.blank?
+            name = name.downcase
+
             if name.starts_with?("sort:")
                 begin
                     @sorting = SORTING_TYPES[name[5..]]
@@ -119,6 +129,10 @@ GROUP BY posts.id"
 
         if selects.empty? || @path_filter
             selects << "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id#{@path_filter.nil? ? "" : " WHERE url LIKE ?"} GROUP BY posts.id"
+        end
+
+        if @album_filter
+            selects << "SELECT posts.* FROM posts JOIN album_posts ON posts.id = album_posts.post_id WHERE album_posts.album_id = #{@album_filter} GROUP BY posts.id"
         end
 
         @sql = "#{ctes.empty? ? "" : "WITH RECURSIVE "}#{ctes.join(", ")} SELECT * FROM (#{selects.join(" INTERSECT ")}#{negative_selects.empty? ? "" : " EXCEPT "}#{negative_selects.join(" EXCEPT ")})"
