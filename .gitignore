@@ -15,4 +15,4 @@ test.db-shm
 test.db-wal
 
 /backup/
-/public/thumb/
+/public/*

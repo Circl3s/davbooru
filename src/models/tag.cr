@@ -28,9 +28,9 @@ class Tag
     end
 
     def self.from_id(id : Int64, db : DB::Database)
-        tag = @@cache[id]
+        tag = @@cache[id]?
         if tag.nil?
-            db.query "SELECT * FROM tags WHERE id=#{id}" do |rs|
+            db.query "SELECT tags.*, categories.name FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.id = ? LIMIT 1", id do |rs|
                 rs.each do
                     tag = Tag.from_row(rs)
                 end
@@ -55,7 +55,7 @@ class Tag
             end
             return cached_tag if cached_tag
 
-            db.query "SELECT * FROM tags WHERE id = #{@parent_id} LIMIT 1" do |rs|
+            db.query "SELECT tags.*, categories.name FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.id = ? LIMIT 1", @parent_id do |rs|
                 rs.each do
                     tag = Tag.from_row(rs)
                     Tag.cache[@parent_id.not_nil!] = tag

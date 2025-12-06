@@ -14,6 +14,7 @@ require "./indexer"
 require "./models/post"
 require "./models/tag"
 require "./models/album"
+require "./models/wiki"
 
 module Davbooru
   extend self
@@ -42,6 +43,15 @@ module Davbooru
   Dir.mkdir("./backup/") unless Dir.exists?("./backup/")
   Dir.mkdir_p("./public/thumb/") unless Dir.exists?("./public/thumb/")
   File.copy("./default.db", "./davbooru.db") unless File.exists?("./davbooru.db")
+
+  unless Dir.exists?("./public/articles/")
+    git = Process.find_executable("git")
+    if git
+      Process.run(git, ["clone", "https://github.com/Circl3s/davbooru.wiki.git", "./public/articles"])
+    else
+      STDERR.puts "Git not found. Default wiki articles will not be available."
+    end
+  end
 
   parser = OptionParser.new do |parser|
     parser.banner = "Usage: davbooru [command] [arguments]"
@@ -646,6 +656,31 @@ module Davbooru
       end
     end
     env.redirect "/album/#{album_id}"
+  end
+
+  get "/wiki" do |env|
+    all_articles = Wiki.all_articles
+    article = Wiki.new("", "# Welcome to the wiki!")
+    mentioned_tags = [] of Tag
+
+    site_title = "Wiki | DAVbooru"
+    render "src/views/wiki.ecr", "src/views/layout.ecr"
+  end
+
+  get "/wiki/*page" do |env|
+    page = env.params.url["page"]
+    page = page + ".md" unless page.ends_with?(".md")
+    
+    all_articles = Wiki.all_articles
+    article = Wiki.from_path(page)
+    if article.nil?
+      env.redirect "/wiki"
+    else
+      mentioned_tags = article.mentioned_tags(db)
+      
+      site_title = "#{article.title} | DAVbooru"
+      render "src/views/wiki.ecr", "src/views/layout.ecr"
+    end
   end
 
   #*

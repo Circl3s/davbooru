@@ -1,0 +1,31 @@
+<main class="row m-4">
+    <div class="col-12 col-md-2 order-1 order-md-0">
+        <h2>Articles</h2>
+        <div class="list-group">
+            <% all_articles.each do |a| %>
+                <a href="/wiki/<%= a.path %>" class="list-group-item list-group-item-action <%= a.path == article.path ? "active" : "" %>"><%= a.title %></a>
+            <% end %>
+        </div>
+    </div>
+    <div class="col-12 col-md-10 p-4">
+        <div id="content">
+        </div>
+        <hr />
+    </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.js"></script>
+<script>
+    const tags = <%= mentioned_tags.to_json %>;
+    const content = document.getElementById("content");
+    content.innerHTML = marked.parse(`<%= article.content %>`);
+
+    content.querySelectorAll("a").forEach((a) => {
+        const tag = tags.find((t) => t.name == a.textContent);
+        if (tag) {
+            a.style.color = tag.color;
+            a.dataset.bsToggle = "tooltip";
+            a.dataset.bsPlacement = "top";
+            a.dataset.bsTitle = tag.description;
+        }
+    });
+</script>
