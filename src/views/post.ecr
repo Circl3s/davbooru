@@ -78,7 +78,7 @@
         </div>
     </aside>
     <div class="col-md-10 order-first order-md-last">
-        <div class="container-fluid position-relative" style="height: 80vh; max-width: 100%;" id="content">
+        <div class="container-fluid position-relative main-media" style="height: 80vh; max-width: 100%;" id="content">
             <% if post.type.includes? "video" %>
             <video class="object-fit-contain h-100 w-100" src="<%= post.url %>" controls <%= should_loop ? "loop" : "" %> id="vid"></video>
             <% elsif post.type.includes? "image" %>
@@ -94,7 +94,7 @@
             <% previous_post = album_posts[previous_post_index]? %>
             <% next_post = album_posts[next_post_index]? %>
             <a href="/post/<%= previous_post.id if previous_post %>?album=<%= album.id %>" class="btn btn-sm btn-outline-info <%= previous_post_index < 0 ? "invisible" : "" %>">Previous</a>
-            <p class="my-0">You're viewing this post as part of <a href="/album/<%= album.id %>"><%= album.name %></a>. <small>(<%= current_post_index.not_nil! + 1 %> of <%= album_posts.size %>)</small></p>
+            <p class="my-0 mx-2">You're viewing this post as part of <a href="/album/<%= album.id %>"><%= album.name %></a>. <small>(<%= current_post_index.not_nil! + 1 %> of <%= album_posts.size %>)</small></p>
             <a href="/post/<%= next_post.id if next_post %>?album=<%= album.id %>" class="btn btn-sm btn-outline-info <%= next_post_index >= album_posts.size ? "invisible" : "" %>">Next</a>
         </div>
         <% end %>
