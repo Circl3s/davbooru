@@ -38,6 +38,11 @@
             main {
                 padding-bottom: 80px !important;
             }
+
+            .toast-container {
+                top: 0 !important;
+                bottom: auto !important;
+            }
         }
     </style>
 </head>
@@ -82,7 +87,7 @@
     <%= content %>
     <% if env.flash["toast-enabled"]? %>
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <div class="toast text-bg-<%= env.flash["toast-type"]? || "info" %> show" role="alert" aria-live="assertive" aria-atomic="true" id="toast">
+        <div class="toast text-bg-<%= env.flash["toast-type"]? || "info" %>" role="alert" aria-live="assertive" aria-atomic="true" id="toast">
             <div class="toast-header">
                 <strong class="me-auto"><%= env.flash["toast-title"]? %></strong>
                 <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
@@ -101,8 +106,14 @@
         document.getElementById("search-box").value = search_text;
         document.getElementById("random").href += `?q=${encodeURIComponent(search_text)}`;
 
-        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
-        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+        const toastTriggerList = document.querySelectorAll('.toast');
+        toastTriggerList.forEach((toastTriggerEl) => {
+            const toast = new bootstrap.Toast(toastTriggerEl)
+            toast.show()
+        });
     </script>
 </body>
 </html>

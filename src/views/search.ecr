@@ -73,9 +73,22 @@
         }
         <% end %>
 
-        let max_paginators = Math.min(9, total_pages);
+        let max_viewable_paginators = 9;
+        switch (true) {
+            case (current_visual_page >= 1000 && window.innerWidth < 992):
+                max_viewable_paginators = 5;
+                break;
+            case (current_visual_page >= 10 && window.innerWidth < 992):
+                max_viewable_paginators = 7;
+                break;
+            default:
+                max_viewable_paginators = 9;
+                break;
+        }
 
-        let pos_of_current_page = 5;
+        let max_paginators = Math.min(max_viewable_paginators, total_pages);
+
+        let pos_of_current_page = Math.ceil(max_viewable_paginators / 2);
         if (current_visual_page < pos_of_current_page) {
             pos_of_current_page = pos_of_current_page + (current_visual_page - pos_of_current_page);
         }
