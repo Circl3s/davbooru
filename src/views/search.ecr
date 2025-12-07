@@ -4,7 +4,7 @@
     }
 </style>
 <main class="row m-4 g-4 justify-content-center" id="main">
-    <% unless show_favourites%>
+    <% unless env.get?("show_favourites") %>
         <% paged_posts.each do |post| %>
         <% is_video = post.type.includes?("video") %>
         <div class="col-6 col-md-2 text-center d-flex justify-content-center flex-column" style="max-height: 180px;">
@@ -16,29 +16,7 @@
         Favourites are stored locally! Clearing browser's data will delete them permanently!
     </div>      
     <% end %>
-    <nav aria-label="Search results pages">
-        <ul class="pagination position-fixed bottom-0 start-50 my-4 translate-middle-x">
-            <li class="page-item">
-                <a class="page-link" href="#" aria-label="Previous" id="paginator-p">
-                    <span aria-hidden="true">&laquo;</span>
-                </a>
-                </li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-1" hidden>1</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-2" hidden>7</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-3" hidden>8</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-4" hidden>9</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-5" hidden>10</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-6" hidden>11</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-7" hidden>12</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-8" hidden>13</a></li>
-                <li class="page-item"><a class="page-link" href="#" id="paginator-9" hidden>100</a></li>
-                <li class="page-item">
-                <a class="page-link" href="#" aria-label="Next" id="paginator-n">
-                    <span aria-hidden="true">&raquo;</span>
-                </a>
-            </li>          
-        </ul>
-    </nav>
+    <%= render "./src/views/components/paginator.ecr" %>
     <script type="module">
         let favs = localStorage.getItem("favourites")?.split(";").reverse() ?? [];
         favs = favs.filter(i => i != "");
@@ -46,24 +24,11 @@
         const url_params = new URLSearchParams(window.location.search);
         const search_text = url_params.get('q');
 
-        <% if show_favourites %>
-        const total_pages = Math.ceil(favs.length / <%= QueryBuilder::DEFAULT_PAGE_SIZE %>);
-        <% else %>
-        const total_pages = <%= total_pages %>;
-        <% end %>
-
         const current_page = Number(url_params.get('p'));
-        const current_visual_page = current_page + 1;
-
-        <% if show_favourites %>
-        const paginator_link_base = `/favourites?p=`
-        <% else %>
-        const paginator_link_base = `/search?q=${encodeURIComponent(search_text)}&p=`
-        <% end %>
 
         let paginated_favs = favs.slice(<%= QueryBuilder::DEFAULT_PAGE_SIZE %> * current_page, <%= QueryBuilder::DEFAULT_PAGE_SIZE %> * (current_page + 1))
 
-        <% if show_favourites %>
+        <% if env.get?("show_favourites") %>
         let main = document.getElementById("main");
         paginated_favs.forEach(fav => {
             main.innerHTML += `<a class="col-6 col-md-2" style="max-height: 180px;" href="/post/${fav}"><img class="object-fit-contain h-100 w-100" src="/post/${fav}/thumbnail" alt="Post #${fav}"></a>`
@@ -72,58 +37,5 @@
             main.innerHTML += `<h1>No favourites. :(</h1>`
         }
         <% end %>
-
-        let max_viewable_paginators = 9;
-        switch (true) {
-            case (current_visual_page >= 1000 && window.innerWidth < 992):
-                max_viewable_paginators = 5;
-                break;
-            case (current_visual_page >= 10 && window.innerWidth < 992):
-                max_viewable_paginators = 7;
-                break;
-            default:
-                max_viewable_paginators = 9;
-                break;
-        }
-
-        let max_paginators = Math.min(max_viewable_paginators, total_pages);
-
-        let pos_of_current_page = Math.ceil(max_viewable_paginators / 2);
-        if (current_visual_page < pos_of_current_page) {
-            pos_of_current_page = pos_of_current_page + (current_visual_page - pos_of_current_page);
-        }
-        if (total_pages - current_visual_page < pos_of_current_page) {
-            pos_of_current_page = max_paginators - (total_pages - current_visual_page);
-        }
-
-        for (let index = 1; index <= max_paginators; index++) {
-            let paginator_element = document.getElementById(`paginator-${index}`);
-            paginator_element.hidden = false;
-
-            let page = current_visual_page + (index - pos_of_current_page);
-            if (page == current_visual_page) {
-                paginator_element.classList.add("active");
-            }
-            if (index == 1) {
-                paginator_element.innerText = "1";
-                paginator_element.href = paginator_link_base + "0";
-            } else if (index == max_paginators) {
-                paginator_element.innerText = total_pages;
-                paginator_element.href = paginator_link_base + (total_pages - 1);
-            } else {
-                paginator_element.innerText = page;
-                paginator_element.href = paginator_link_base + (page - 1);
-            }
-        }
-
-        document.getElementById("paginator-p").href = paginator_link_base + (current_page - 1)
-        document.getElementById("paginator-n").href = paginator_link_base + (current_page + 1)
-
-        if ((current_page - 1) < 0) {
-            document.getElementById("paginator-p").classList.add("disabled");
-        }
-        if ((current_page + 1) >= total_pages) {
-            document.getElementById("paginator-n").classList.add("disabled");
-        }
     </script>
 </main>

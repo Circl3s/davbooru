@@ -19,7 +19,6 @@ class QueryBuilder
 
     @db : DB::Database
     getter text : String
-    property page : Int64
     @sql : String = ""
     getter unknown_tags = [] of String
     getter valid_tags = [] of String
@@ -31,7 +30,7 @@ class QueryBuilder
 
     
     
-    def initialize(@db, @text = "", @page = 0)
+    def initialize(@db, @text = "")
         # Extract advanced filters
         raw_path_filter = (@text.match(/path:(?:\"([^\"]+)\"|(\S+))/) || [] of String)[1]? || (@text.match(/path:(?:\"([^\"]+)\"|(\S+))/) || [] of String)[2]?
         raw_album_filter = (@text.match(/(?:album|pool):(\d+)/) || [] of String)[1]?

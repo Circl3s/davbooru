@@ -1,14 +1,25 @@
 <main class="row m-4 g-4 justify-content-center">
-  <% albums.each_with_index do |album, index| %>
+  <div class="col-12 justify-content-center d-flex align-items-center mb-2">
+    <button type="button" class="btn btn-success text-nowrap me-2" data-bs-toggle="modal" data-bs-target="#albums-modal">
+      New Album
+    </button>
+    <form class="input-group">
+      <input type="text" class="form-control" placeholder="Search albums..." aria-label="Search albums..." aria-describedby="button-addon2" name="q" id="album-search" type="search" autocomplete="off">
+      <% search_id = "album-search" %>
+      <%= render "./src/views/components/suggestions.ecr" %>
+      <button class="btn btn-outline-success" type="submit" id="button-addon2">Search</button>
+    </form>
+  </div>
+  <% paged_albums.each_with_index do |album, index| %>
     <div class="col-12 col-md-3">
       <div class="card" style="height: 18rem;">
         <div class="row g-0 h-100">
           <div class="col-4 h-100">
-            <% if first_posts[index].nil? %>
+            <% if paged_first_posts[index].nil? %>
               <img src="/thumb/placeholder.webp"
               class="img-fluid rounded-start object-fit-cover w-100 h-100" alt="Album thumbnail">
             <% else %>
-              <img src="<%= first_posts[index].not_nil!.thumbnail %>"
+              <img src="<%= paged_first_posts[index].not_nil!.thumbnail %>"
               class="img-fluid rounded-start object-fit-cover w-100 h-100" alt="Album thumbnail">
             <% end %>
           </div>
@@ -21,10 +32,10 @@
                 <%= album.description %>
               </p>
               <div class="d-flex gap-2">
-                <% if first_posts[index].nil? %>
+                <% if paged_first_posts[index].nil? %>
                   <a href="#" class="btn btn-primary disabled">View</a>
                 <% else %>
-                  <a href="/post/<%= first_posts[index].not_nil!.id %>?album=<%= album.id %>" class="btn btn-primary">View</a>
+                  <a href="/post/<%= paged_first_posts[index].not_nil!.id %>?album=<%= album.id %>" class="btn btn-primary">View</a>
                 <% end %>
                 <a href="/album/<%= album.id %>" class="btn btn-secondary">Details</a>
               </div>
@@ -34,7 +45,7 @@
       </div>
     </div>
   <% end %>
-  <% if albums.empty? %>
+  <% if paged_albums.empty? %>
     <p>No albums found.</p>
   <% end %>
 </main>
@@ -65,7 +76,13 @@
     </div>
   </div>
 </div>
-<script>
+<%= render "./src/views/components/paginator.ecr" %>
+<script type="module">
+  const url_params = new URLSearchParams(window.location.search);
+  const search_text = url_params.get('q') ?? "";
+
+  document.getElementById("album-search").value = search_text;
+
   document.getElementById("modal-form").addEventListener("submit", function (event) {
     if (!event.target.checkValidity()) {
       event.preventDefault();
@@ -74,6 +91,3 @@
     event.target.classList.add("was-validated");
   });
 </script>
-<button type="button" class="btn btn-success position-fixed end-0 bottom-0 m-4" data-bs-toggle="modal" data-bs-target="#albums-modal">
-  New Album
-</button>

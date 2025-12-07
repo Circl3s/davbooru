@@ -126,12 +126,11 @@ module Davbooru
   end
 
   get "/search" do |env|
-    show_favourites = false
     search_string = env.params.query["q"]
     search_param = URI.encode_www_form(search_string)
     page = env.params.query["p"].to_i64
     posts = [] of Post
-    qb = QueryBuilder.new(db, search_string, page.to_i64)
+    qb = QueryBuilder.new(db, search_string)
     if qb.path_filter
       db.query qb.sql, "%#{qb.path_filter}%" do |rs|
         rs.each do
@@ -336,9 +335,9 @@ module Davbooru
   end
 
   get "/favourites" do |env|
-    show_favourites = true
+    env.set "show_favourites", "true"
     paged_posts = [] of Post
-    qb = QueryBuilder.new(db, "", 0)
+    qb = QueryBuilder.new(db, "")
     total_pages = 0
     search_param = ""
     site_title = "Favourites | DAVbooru"
@@ -350,7 +349,7 @@ module Davbooru
       search_string = env.params.query["q"]
       search_param = URI.encode_www_form(search_string)
       posts = [] of Post
-      qb = QueryBuilder.new(db, search_string, 1)
+      qb = QueryBuilder.new(db, search_string)
       if qb.path_filter
         db.query qb.sql, "%#{qb.path_filter}%" do |rs|
           rs.each do
@@ -511,16 +510,52 @@ module Davbooru
   # Albums
 
   get "/albums" do |env|
+    search_string = env.params.query["q"]? || ""
+    page = (env.params.query["p"]? || "0").to_i64
+
     albums = [] of Album
+    matching_posts = [] of Post
     first_posts = [] of Post?
+
+    qb = QueryBuilder.new(db, search_string)
+    sql = qb.sql
+
+    unless qb.valid_tags.empty?
+      db.query sql do |rs|
+        rs.each do
+          matching_posts << Post.from_row(rs, indexer)
+        end
+      end
+    end
+
     db.query "SELECT * FROM albums ORDER BY id DESC" do |rs|
       rs.each do
         album = Album.from_row(rs)
-        albums << album
-        post = album.posts(db, indexer).first?
-        first_posts << post
+        all_posts = album.posts(db, indexer)
+        unless qb.valid_tags.empty?
+          should_include = all_posts.any? { |post| matching_posts.map(&.id).includes?(post.id) }
+          albums << album if should_include
+          first_posts << all_posts.first? if should_include
+        else
+          albums << album
+          first_posts << all_posts.first?
+        end
       end
     end
+    
+    total_albums = albums.size
+    
+    total_pages = (total_albums / 12).ceil
+    paged_albums = albums[(page * 12)..((page+1) * 12) - 1]
+    paged_first_posts = first_posts[(page * 12)..((page+1) * 12) - 1]
+
+    unless qb.unknown_tags.empty?
+      env.flash["toast-enabled"] = "true"
+      env.flash["toast-title"] = "Ignoring unknown tags"
+      env.flash["toast-body"] = qb.unknown_tags.join(", ")
+      env.flash["toast-type"] = "warning"
+    end
+
     site_title = "Albums | DAVbooru"
     render "src/views/albums.ecr", "src/views/layout.ecr"
   end
