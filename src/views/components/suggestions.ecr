@@ -28,6 +28,7 @@
         input.value = newValue;
         suggestBox.hidden = true;
         input.focus();
+        input.dispatchEvent(new Event("input", { "bubbles": true }));
     }
 
     function suggest() {

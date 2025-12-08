@@ -363,6 +363,21 @@ module Davbooru
           end
         end
       end
+
+      if posts.empty?
+        message = "No posts found for query: #{search_string}"
+        site_title = "Error | DAVbooru"
+        back_url = "/search?q=&p=0"
+        render "src/views/error.ecr", "src/views/layout.ecr"
+      end
+
+      unless qb.unknown_tags.empty?
+        env.flash["toast-enabled"] = "true"
+        env.flash["toast-title"] = "Ignoring unknown tags"
+        env.flash["toast-body"] = qb.unknown_tags.join(", ")
+        env.flash["toast-type"] = "warning"
+      end
+
       env.redirect "/post/#{posts.sample.id}?q=#{search_param}"
     rescue e
       puts "RANDOM ERROR: #{e}"

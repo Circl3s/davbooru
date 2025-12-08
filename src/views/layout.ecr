@@ -58,7 +58,7 @@
                 background-color: rgba(0, 0, 0, 0.5);
             }
 
-            #search-form > button:not(:hover, :active, :focus) {
+            #search-form > .btn:not(:hover, :active, :focus) {
                 background: inherit;
             }
         }
@@ -69,11 +69,11 @@
         <div class="container-fluid">
             <a class="navbar-brand" href="/">DAVbooru</a>
             <div class="d-flex d-lg-none">
-                <button class="btn btn-outline-secondary text-decoration-none me-2 d-flex align-items-center justify-content-center" type="button" onclick="random_post()">
+                <a class="btn btn-outline-secondary text-decoration-none me-2 d-flex align-items-center justify-content-center" href="#" id="random-post-1">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-dice-3-fill" viewBox="0 0 16 16">
                         <path d="M3 0a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V3a3 3 0 0 0-3-3zm2.5 4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m8 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M8 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/>
                     </svg>
-                </button>
+                </a>
                 <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -102,11 +102,11 @@
                     <%= render "./src/views/components/suggestions.ecr" %>
                     <input type="hidden" name="p" value="0">
                     <button class="btn btn-outline-success" type="submit">Search</button>
-                    <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button" onclick="random_post()">
+                    <a class="btn btn-outline-secondary d-flex align-items-center justify-content-center" href="#" id="random-post-2">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-dice-3-fill" viewBox="0 0 16 16">
                             <path d="M3 0a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V3a3 3 0 0 0-3-3zm2.5 4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m8 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M8 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/>
                         </svg>
-                    </button>
+                    </a>
                 </form>
             </div>
         </div>
@@ -131,11 +131,14 @@
         const search_text = url_params.get('q') ?? "";
 
         document.getElementById("search-box").value = search_text;
+        document.getElementById("random-post-1").href = `/random?q=${search_text}`;
+        document.getElementById("random-post-2").href = `/random?q=${search_text}`;
 
-        function random_post() {
+        document.getElementById("search-box").addEventListener("input", () => {
             let random_search = document.getElementById("search-box").value;
-            window.location.href = `/random?q=${random_search}`;
-        }
+            document.getElementById("random-post-1").href = `/random?q=${random_search}`;
+            document.getElementById("random-post-2").href = `/random?q=${random_search}`;
+        });
 
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));

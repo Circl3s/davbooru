@@ -37,7 +37,12 @@
             <div class="col-3">
                 <b>Albums:</b>
             </div>
-            <div class="col-3 text-end">
+            <div class="col-3 text-end input-group w-auto">
+                <% if all_albums.size > 0 %>
+                <div class="btn btn-sm btn-outline-secondary disabled">
+                    <%= all_albums.size %>
+                </div>
+                <% end %>
                 <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#album-collapse" aria-expanded="false" aria-controls="album-collapse">
                     Show
                 </button>
