@@ -54,7 +54,8 @@
                 item.classList.add("list-group-item-action");
                 item.innerText = tag.name;
                 item.style.color = tag.color;
-                item.onclick = () => {
+                item.onmousedown = (e) => {
+                    e.preventDefault();
                     complete(tag, negative)
                 };
                 if (i == 0) {

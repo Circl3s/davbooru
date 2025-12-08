@@ -8,7 +8,7 @@
             </div>
         </div>
     </div>
-    <div class="container position-absolute bottom-0 start-50 translate-middle">
+    <div class="container position-fixed bottom-0 start-50 translate-middle">
         <h3>Tagging progress:</h3>
         <div style="height: 24px" title="<%= tagged %> tagged" class="progress vw-75" role="progressbar" aria-label="Percent of tagged posts" aria-valuenow="<%= tagging_progress %>" aria-valuemin="0" aria-valuemax="100">
             <div class="progress-bar <%= tagging_progress == 100.0 ? "" : "progress-bar-striped progress-bar-animated" %> text-bg-success" style="width: <%= tagging_progress%>%"><%= tagging_progress %>%</div>

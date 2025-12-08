@@ -43,6 +43,20 @@
                 top: 0 !important;
                 bottom: auto !important;
             }
+
+            #search-form:focus-within {
+                top: -75vh;
+            }
+
+            #search-form:focus-within::before {
+                content: "";
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+            }
         }
     </style>
 </head>
@@ -74,12 +88,12 @@
                         <a class="nav-link active" aria-current="page" href="/random" id="random">Random</a>
                     </li>
                 </ul>
-                <form class="d-flex position-relative" role="search" action="/search" method="get">
-                    <input class="form-control me-2" name="q" type="search" placeholder="Search for..." aria-label="Search" id="search-box" autocomplete="off">
+                <form class="d-flex input-group w-auto" role="search" action="/search" method="get" id="search-form">
+                    <input class="form-control" name="q" type="search" placeholder="Search for..." aria-label="Search" id="search-box" autocomplete="off">
                     <% search_id = "search-box" %>
                     <%= render "./src/views/components/suggestions.ecr" %>
                     <input type="hidden" name="p" value="0">
-                    <button class="btn btn-outline-success" type="submit">Search</button>
+                    <button class="btn btn-outline-success bg-body-tertiary" type="submit">Search</button>
                 </form>
             </div>
         </div>

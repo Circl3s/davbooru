@@ -74,7 +74,14 @@
             <img class="w-100 object-fit-contain" style="max-height: 240px;" src="<%= post.thumbnail %>">
         </div>
         <div class="row my-4 justify-content-around">
-            <button class="col-6 btn btn-outline-primary w-auto mb-2" id="download">Download</button>
+            <button class="position-relative col-6 btn btn-outline-primary w-auto mb-2" id="download">
+                <span id="download-text">Download</span>
+                <div class="position-absolute top-50 start-50 translate-middle invisible" id="download-spinner">
+                    <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true">
+                        <span class="visually-hidden">Downloading...</span>
+                    </div>
+                </div>
+            </button>
             <button class="col-6 btn btn-danger w-auto mb-2" data-bs-toggle="modal" data-bs-target="#delete-modal" id="delete">Delete Post</button>
         </div>
     </aside>
@@ -269,8 +276,15 @@
     }
 
     // Convert to BLOB and download
-    document.getElementById("download").addEventListener("click", (e) => {
+    const download_btn = document.getElementById("download");
+    const download_text = document.getElementById("download-text");
+    const download_spinner = document.getElementById("download-spinner");
+
+    download_btn.addEventListener("click", (e) => {
         e.preventDefault();
+        download_btn.disabled = true;
+        download_text.classList.add("invisible");
+        download_spinner.classList.remove("invisible");
         fetch("<%= post.url %>", {credentials: "include"})
             .then(response => response.blob())
             .then(blob => {
@@ -283,6 +297,10 @@
                 a.click();
                 a.remove();
                 URL.revokeObjectURL(url);
+
+                download_btn.disabled = false;
+                download_spinner.classList.add("invisible");
+                download_text.classList.remove("invisible");
             });
     });
 </script>
