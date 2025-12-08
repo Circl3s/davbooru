@@ -73,8 +73,9 @@
         <div class="collapse m-2" id="thumb-collapse">
             <img class="w-100 object-fit-contain" style="max-height: 240px;" src="<%= post.thumbnail %>">
         </div>
-        <div class="text-center my-4">
-            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#delete-modal" id="delete">Delete Post</button>
+        <div class="row my-4 justify-content-around">
+            <button class="col-6 btn btn-outline-primary w-auto mb-2" id="download">Download</button>
+            <button class="col-6 btn btn-danger w-auto mb-2" data-bs-toggle="modal" data-bs-target="#delete-modal" id="delete">Delete Post</button>
         </div>
     </aside>
     <div class="col-md-10 order-first order-md-last">
@@ -266,4 +267,22 @@
         }
         return true;
     }
+
+    // Convert to BLOB and download
+    document.getElementById("download").addEventListener("click", (e) => {
+        e.preventDefault();
+        fetch("<%= post.url %>", {credentials: "include"})
+            .then(response => response.blob())
+            .then(blob => {
+                let url = URL.createObjectURL(blob);
+                let a = document.createElement("a");
+                a.href = url;
+                a.hidden = true;
+                a.download = "<%= post.name %>";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            });
+    });
 </script>
