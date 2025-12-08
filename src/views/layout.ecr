@@ -57,6 +57,10 @@
                 height: 100%;
                 background-color: rgba(0, 0, 0, 0.5);
             }
+
+            #search-form > button:not(:hover, :active, :focus) {
+                background: inherit;
+            }
         }
     </style>
 </head>
@@ -64,9 +68,16 @@
     <nav class="navbar navbar-expand-lg bg-body-tertiary z-3">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">DAVbooru</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            <div class="d-flex d-lg-none">
+                <button class="btn btn-outline-secondary text-decoration-none me-2 d-flex align-items-center justify-content-center" type="button" onclick="random_post()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-dice-3-fill" viewBox="0 0 16 16">
+                        <path d="M3 0a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V3a3 3 0 0 0-3-3zm2.5 4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m8 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M8 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/>
+                    </svg>
+                </button>
+                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
@@ -84,16 +95,18 @@
                     <li class="nav-item">
                         <a class="nav-link active" aria-current="page" href="/wiki">Wiki</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="/random" id="random">Random</a>
-                    </li>
                 </ul>
-                <form class="d-flex input-group w-auto" role="search" action="/search" method="get" id="search-form">
+                <form class="d-flex input-group w-auto bg-body-tertiary" role="search" action="/search" method="get" id="search-form">
                     <input class="form-control" name="q" type="search" placeholder="Search for..." aria-label="Search" id="search-box" autocomplete="off">
                     <% search_id = "search-box" %>
                     <%= render "./src/views/components/suggestions.ecr" %>
                     <input type="hidden" name="p" value="0">
-                    <button class="btn btn-outline-success bg-body-tertiary" type="submit">Search</button>
+                    <button class="btn btn-outline-success" type="submit">Search</button>
+                    <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center" type="button" onclick="random_post()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-dice-3-fill" viewBox="0 0 16 16">
+                            <path d="M3 0a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V3a3 3 0 0 0-3-3zm2.5 4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m8 8a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0M8 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/>
+                        </svg>
+                    </button>
                 </form>
             </div>
         </div>
@@ -118,7 +131,11 @@
         const search_text = url_params.get('q') ?? "";
 
         document.getElementById("search-box").value = search_text;
-        document.getElementById("random").href += `?q=${encodeURIComponent(search_text)}`;
+
+        function random_post() {
+            let random_search = document.getElementById("search-box").value;
+            window.location.href = `/random?q=${random_search}`;
+        }
 
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
