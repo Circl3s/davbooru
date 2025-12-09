@@ -1,8 +1,7 @@
 <main class="row m-4 justify-content-center d-flex">
     <aside class="col-md-2 order-last order-md-first">
-        <button type="button" class="btn my-4" id="fav">Favourite</button>
+        <button type="button" class="btn btn-success my-4" id="fav" disabled>Favourite</button>
         <h3>Tags</h3>
-        </div>
         <% last_cat = "" %>
         <% tag_names = [] of String %>
         <% tags.each do |tag| %>
@@ -15,7 +14,6 @@
             <li><a style="color: <%= HTML.escape(tag.color) %>;" href="/search?q=<%= tag.name %>&p=0" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="<%= HTML.escape(tag.description) %>"><%= HTML.escape(tag.name) %></a></li>
             <% last_cat = tag.category_name %>
         <% end %>
-        <% should_loop = tag_names.includes? "loop" %>
         </ul>
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tags-modal" id="edit">Edit tags</button>
         <div class="row align-items-center justify-content-between my-4">
@@ -93,7 +91,58 @@
     <div class="col-md-10 order-first order-md-last">
         <div class="container-fluid position-relative main-media" style="height: 80vh; max-width: 100%;" id="content">
             <% if post.type.includes? "video" %>
-            <video class="object-fit-contain h-100 w-100" src="<%= post.url %>" controls <%= should_loop ? "loop" : "" %> id="vid"></video>
+            <video class="object-fit-contain h-100 w-100" src="<%= post.url %>" controls id="vid"></video>
+            <script>
+                const loop_setting = window.localStorage.getItem("loop") || "loop";
+                const should_remember_volume = window.localStorage.getItem("volume_mode") || "remember";
+                const should_autoplay = window.localStorage.getItem("autoplay") || "false";
+                const vid = document.getElementById("vid");
+
+                const syncPromise = new Promise(resolve => {
+                    document.addEventListener("sync", resolve);
+                });
+
+                const metadataPromise = new Promise(resolve => {
+                    vid.onloadedmetadata = resolve;
+                });
+                
+                Promise.all([syncPromise, metadataPromise]).then(() => {
+                    console.log("Loaded metadata");
+                    switch (loop_setting) {
+                        case "always":
+                            vid.loop = true;
+                            break;
+                        case "loop":
+                            vid.loop = <%= tag_names.includes? "loop" %>;
+                            break;
+                        case "short":
+                            if (vid.duration < 60) {
+                                vid.loop = true;
+                            }
+                            break;
+                        case "never":
+                            vid.loop = false;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    let default_volume = Number(localStorage.getItem("volume") ?? "0.2"); 
+                    vid.volume = default_volume / 100;
+
+                    vid.onvolumechange = () => {
+                        if (should_remember_volume === "remember") {
+                            localStorage.setItem("volume", vid.volume * 100);
+                        }
+                    }
+
+                    if (should_autoplay === "true") {
+                        vid.muted = true;
+                        vid.autoplay = true;
+                        vid.play();
+                    }
+                });
+            </script>
             <% elsif post.type.includes? "image" %>
             <img class="object-fit-contain h-100 w-100" src="<%= post.url %>" id="img">
             <% else %>
@@ -175,42 +224,70 @@
     const tag_edit = document.getElementById("tags-text-area");
     const fav_btn = document.getElementById("fav");
 
-    let favs = localStorage.getItem("favourites")?.split(";") ?? [];
-    let is_favourite = favs.includes("<%= post.id %>");
-
-    <% if post.type.includes? "video" %>
-    const vid = document.getElementById("vid");
-
-    let default_volume = Number(localStorage.getItem("volume") ?? "0.2"); 
-    vid.volume = default_volume;
-
-    vid.onvolumechange = () => {
-        localStorage.setItem("volume", vid.volume);
-    }
-    <% end %>
-
     let last_album_id = localStorage.getItem("last_album_id");
     if (last_album_id) {
         document.getElementById("album-form").action = `/album/${last_album_id}/add`;
         document.getElementById("album-id").value = last_album_id;
     }
 
-    if (is_favourite) {
-        fav_btn.classList.add("btn-danger");
-        fav_btn.innerText = "Unfavourite";
-        fav_btn.onclick = () => {
-            favs = favs.filter(i => i != "<%= post.id %>");
-            localStorage.setItem("favourites", favs.join(";"));
-            window.location.reload();
+    document.addEventListener("sync", (ev) => {
+        console.log("Synced in post");
+        let favs = localStorage.getItem("favourites")?.split(";") ?? [];
+        let is_favourite = favs.includes("<%= post.id %>");
+        if (is_favourite) {
+            fav_btn.classList.remove("btn-success");
+            fav_btn.classList.add("btn-danger");
+            fav_btn.innerText = "Unfavourite";
+            fav_btn.onclick = () => {
+                fav_btn.disabled = true;
+                favs = favs.filter(i => i != "<%= post.id %>");
+                localStorage.setItem("favourites", favs.join(";"));
+                if (localStorage.getItem("sync") === "true") {
+                    fetch(localStorage.getItem("sync_url"), {
+                    method: "PUT",
+                    body: JSON.stringify(window.localStorage),
+                    credentials: "include"
+                    }).then((response) => {
+                        if (response.ok) {
+                            location.reload();
+                        } else {
+                            alert("Failed to sync favourites: " + response.statusText);
+                        }
+                    }).catch((error) => {
+                        alert("Failed to sync favourites: " + error);
+                    });
+                } else {
+                    location.reload();
+                }
+            }
+        } else {
+            fav_btn.classList.remove("btn-danger");
+            fav_btn.classList.add("btn-success");
+            fav_btn.onclick = () => {
+                fav_btn.disabled = true;
+                favs.push("<%= post.id %>");
+                localStorage.setItem("favourites", favs.join(";"));
+                if (localStorage.getItem("sync") === "true") {
+                    fetch(localStorage.getItem("sync_url"), {
+                    method: "PUT",
+                    body: JSON.stringify(window.localStorage),
+                    credentials: "include"
+                    }).then((response) => {
+                        if (response.ok) {
+                            location.reload();
+                        } else {
+                            alert("Failed to sync favourites: " + response.statusText);
+                        }
+                    }).catch((error) => {
+                        alert("Failed to sync favourites: " + error);
+                    });
+                } else {
+                    location.reload();
+                }
+            }
         }
-    } else {
-        fav_btn.classList.add("btn-success");
-        fav_btn.onclick = () => {
-            favs.push("<%= post.id %>");
-            localStorage.setItem("favourites", favs.join(";"));
-            window.location.reload();
-        }
-    }
+        fav_btn.disabled = false;
+    });
 
     document.getElementById("album-form")?.addEventListener("submit", (ev) => {
         ev.preventDefault();

@@ -12,30 +12,37 @@
         </div>
         <% end %>
     <% else %>
-    <div class="alert alert-warning" role="alert">
+    <div class="alert alert-warning d-none" role="alert" id="favourites-warning">
         Favourites are stored locally! Clearing browser's data will delete them permanently!
     </div>      
     <% end %>
-    <%= render "./src/views/components/paginator.ecr" %>
     <script type="module">
-        let favs = localStorage.getItem("favourites")?.split(";").reverse() ?? [];
-        favs = favs.filter(i => i != "");
-
         const url_params = new URLSearchParams(window.location.search);
         const search_text = url_params.get('q');
 
         const current_page = Number(url_params.get('p'));
 
-        let paginated_favs = favs.slice(<%= QueryBuilder::DEFAULT_PAGE_SIZE %> * current_page, <%= QueryBuilder::DEFAULT_PAGE_SIZE %> * (current_page + 1))
-
         <% if env.get?("show_favourites") %>
-        let main = document.getElementById("main");
-        paginated_favs.forEach(fav => {
-            main.innerHTML += `<a class="col-6 col-md-2" style="max-height: 180px;" href="/post/${fav}"><img class="object-fit-contain h-100 w-100" src="/post/${fav}/thumbnail" alt="Post #${fav}"></a>`
+        console.log("Syncing favourites");
+        document.addEventListener("sync", () => {
+            console.log("Synced favourites");
+            if (localStorage.getItem("sync") != "true") {
+                document.getElementById("favourites-warning").classList.remove("d-none");
+            }
+            let favs = localStorage.getItem("favourites")?.split(";").reverse() ?? [];
+            favs = favs.filter(i => i != "");
+
+            let paginated_favs = favs.slice(<%= QueryBuilder::DEFAULT_PAGE_SIZE %> * current_page, <%= QueryBuilder::DEFAULT_PAGE_SIZE %> * (current_page + 1))
+
+            let main = document.getElementById("main");
+            paginated_favs.forEach(fav => {
+                main.innerHTML += `<a class="col-6 col-md-2" style="max-height: 180px;" href="/post/${fav}"><img class="object-fit-contain h-100 w-100" src="/post/${fav}/thumbnail" alt="Post #${fav}"></a>`
+            });
+            if (favs.length == 0) {
+                main.innerHTML += `<h1>No favourites. :(</h1>`
+            }
         });
-        if (favs.length == 0) {
-            main.innerHTML += `<h1>No favourites. :(</h1>`
-        }
         <% end %>
     </script>
+    <%= render "./src/views/components/paginator.ecr" %>
 </main>

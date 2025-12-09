@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="<%= env.get? "theme" %>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -63,8 +63,19 @@
             }
         }
     </style>
+    <script>
+        window.default_settings = {
+            sync: false,
+            sync_url: "",
+            theme: "dark",
+            autoplay: false,
+            loop: "loop",
+            volume_mode: "remember",
+            volume: 1,
+        }
+    </script>
 </head>
-<body data-bs-theme="dark">
+<body>
     <nav class="navbar navbar-expand-lg bg-body-tertiary z-3">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">DAVbooru</a>
@@ -81,19 +92,28 @@
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="/search?q=&p=0">Posts</a>
+                        <a class="nav-link" aria-current="page" href="/search?q=&p=0">Posts</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="/albums?q=&p=0">Albums</a>
+                        <a class="nav-link" aria-current="page" href="/albums?q=&p=0">Albums</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="/tag">Tags</a>
+                        <a class="nav-link" aria-current="page" href="/tag">Tags</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="/favourites">Favourites</a>
+                        <a class="nav-link" aria-current="page" href="/favourites">Favourites</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="/wiki">Wiki</a>
+                        <a class="nav-link" aria-current="page" href="/wiki">Wiki</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Settings
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/settings">Preferences</a></li>
+                            <li><a class="dropdown-item" href="/settings/admin">Admin</a></li>
+                        </ul>
                     </li>
                 </ul>
                 <form class="d-flex input-group w-auto bg-body-tertiary" role="search" action="/search" method="get" id="search-form">
@@ -129,6 +149,46 @@
     <script>
         const url_params = new URLSearchParams(window.location.search);
         const search_text = url_params.get('q') ?? "";
+
+        document.addEventListener("DOMContentLoaded", () => {
+            if (window.localStorage.getItem("sync") === "true") {
+                fetch(window.localStorage.getItem("sync_url"), {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    credentials: "include"
+                }).then((response) => {
+                    if (response.ok) {
+                        response.json().then((data) => {
+                            window.localStorage.setItem("sync", data.sync);
+                            window.localStorage.setItem("sync_url", data.sync_url);
+                            window.localStorage.setItem("theme", data.theme);
+                            window.localStorage.setItem("autoplay", data.autoplay);
+                            window.localStorage.setItem("loop", data.loop);
+                            window.localStorage.setItem("volume_mode", data.volume_mode);
+                            if (data.volume_mode === "fixed") {
+                                window.localStorage.setItem("volume", data.volume);
+                            }
+                            window.localStorage.setItem("favourites", data.favourites);
+
+                            document.cookie = "theme=" + data.theme;
+                            document.documentElement.setAttribute("data-bs-theme", data.theme);
+
+                            document.dispatchEvent(new CustomEvent("sync", {
+                                detail: data
+                            }));
+                            console.log("Synced");
+                        });
+                    }
+                })
+            } else {
+                document.dispatchEvent(new CustomEvent("sync", {
+                    detail: window.localStorage
+                }));
+                console.log("Fake synced");
+            }
+        });
 
         document.getElementById("search-box").value = search_text;
         document.getElementById("random-post-1").href = `/random?q=${search_text}`;

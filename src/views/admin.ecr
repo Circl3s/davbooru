@@ -1,0 +1,31 @@
+<main class="row m-4">
+    <div class="col-12">
+        <h1>The Admin Zone</h1>
+    </div>
+    <div class="col-12">
+        <button class="btn btn-primary" id="force-index">Force Indexing</button>
+    </div>
+</main>
+<script>
+    const button = document.getElementById("force-index");
+    button.addEventListener("click", () => {
+        button.disabled = true;
+        button.textContent = "Indexing...";
+        fetch("/api/index", {
+            method: "PUT",
+            credentials: "include"
+        }).then((res) => {
+            if (res.status == 204) {
+                location.href = "/";
+            } else {
+                res.json().then((json) => {
+                    alert("Failed to force indexing: " + json.error);
+                });
+            }
+        }).catch((e) => {
+            alert("Failed to force indexing: " + e);
+        });
+        button.disabled = false;
+        button.textContent = "Force Indexing";
+    });
+</script>

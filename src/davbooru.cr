@@ -31,8 +31,9 @@ module Davbooru
   testing = false
 
   class ImportantAuthHandler < Kemal::BasicAuth::Handler
-    only ["/tag/:id"]
+    only ["/tag/:id", "/settings/admin"]
     only(["/tag/edit", "/post/:id/edit", "/post/:id/delete", "/tag/:id/mass_tag", "/tag/:id/mass_remove", "/albums/create", "/album/:id/delete", "/album/:id/add", "/album/:id/remove", "/album/:id/edit", "/album/:id/reorder"], method: "POST")
+    only(["/api/index"], method: "PUT")
 
     def call(context)
       return call_next(context) unless only_match?(context)
@@ -116,6 +117,14 @@ module Davbooru
   indexer = Indexer.new(db, base_url, username, password)
 
   Kemal::Session.config.secret = ":)"
+
+  before_all "/*" do |env|
+    unless env.request.cookies["theme"]?.nil?
+      env.set "theme", env.request.cookies["theme"].value
+    else
+      env.set "theme", "dark"
+    end
+  end
 
   get "/" do |env|
     site_title = "DAVbooru"
@@ -734,11 +743,23 @@ module Davbooru
     end
   end
 
+  get "/settings" do |env|
+    site_title = "Settings | DAVbooru"
+    render "src/views/settings.ecr", "src/views/layout.ecr"
+  end
+
+  get "/settings/admin" do |env|
+    site_title = "Admin | DAVbooru"
+    render "src/views/admin.ecr", "src/views/layout.ecr"
+  end
+
   #*
   #* API
   #*
 
   get "/api/suggest" do |env|
+    env.response.headers["Content-Type"] = "application/json"
+
     query = env.params.query["q"]? || ""
     nopseudo = (env.params.query["nopseudo"]? || "") === "1"
     tags = [] of Tag
@@ -782,8 +803,24 @@ module Davbooru
       end
     end
 
-    env.response.content_type = "application/json"
     tags.to_json
+  end
+
+  put "/api/index" do |env|
+    env.response.headers["Content-Type"] = "application/json"
+
+    response = ""
+    begin
+      raise "Indexing is disabled" if dont_index
+      indexer.backup unless testing
+      indexer.run unless dont_index
+      env.response.status_code = 204
+    rescue e
+      env.response.status_code = 500
+      response = {"error" => e.message}.to_json
+    end
+
+    response
   end
 
   if only_index

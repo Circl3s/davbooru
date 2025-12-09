@@ -1,0 +1,181 @@
+<main class="container p-4">
+    <div class="row">
+        <div class="col-12">
+            <h1>Preferences</h1>
+            <hr />
+        </div>
+    </div>
+    <div class="row">
+        <form class="col-12">
+            <div class="mb-3">
+                <label for="sync" class="form-label">Sync over WebDAV</label>
+                <div class="input-group">
+                    <div class="input-group-text">
+                        <input type="checkbox" class="form-check-input mt-0" name="sync" id="sync">
+                    </div>
+                    <div class="form-floating">
+                        <input type="text" class="form-control" name="sync_url" id="sync_url"
+                            placeholder="Enter desired sync path">
+                        <label for="sync_url">Sync directory path</label>
+                    </div>
+                    <span class="input-group-text">/davbooru.json</span>
+                </div>
+                <div class="form-text">
+                    Syncs your favourites and settings by uploading them to the specified WebDAV directory.
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="theme" class="form-label">Theme</label>
+                <select name="theme" id="theme" class="form-select">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="autoplay" class="form-label">Autoplay</label>
+                <select name="autoplay" id="autoplay" class="form-select">
+                    <option value="false">Disabled</option>
+                    <option value="true">Enabled</option>
+                </select>
+                <div class="form-text">
+                    Enabling autoplay will mute the video.
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="loop" class="form-label">Loop</label>
+                <select name="loop" id="loop" class="form-select">
+                    <option value="never">Never</option>
+                    <option value="loop">Only if tagged "loop"</option>
+                    <option value="short">All shorter than a minute</option>
+                    <option value="always">Always</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="volume_mode" class="form-label">Volume</label>
+                <div class="input-group">
+                    <select name="volume_mode" id="volume_mode" class="form-select">
+                        <option value="remember">Remember last</option>
+                        <option value="fixed">Always set to...</option>
+                    </select>
+                    <input type="number" class="form-control" name="volume" id="volume" value="100" min="0" max="100">
+                    <span class="input-group-text">%</span>
+                </div>
+            </div>
+            <button type="button" class="btn btn-success" id="save_settings">Save</button>
+            <button type="button" class="btn btn-primary" id="sync_settings">Sync with cloud</button>
+        </form>
+    </div>
+</main>
+
+<script type="module">
+    const sync_element = document.querySelector("#sync");
+    const sync_url_element = document.querySelector("#sync_url");
+    const theme_element = document.querySelector("#theme");
+    const autoplay_element = document.querySelector("#autoplay");
+    const loop_element = document.querySelector("#loop");
+    const volume_mode_element = document.querySelector("#volume_mode");
+    const volume_element = document.querySelector("#volume");
+    const save_settings_element = document.querySelector("#save_settings");
+    const sync_settings_element = document.querySelector("#sync_settings");
+
+    const settings = {
+        sync: window.localStorage.getItem("sync") || "false",
+        sync_url: window.localStorage.getItem("sync_url") || "",
+        theme: window.localStorage.getItem("theme") || "dark",
+        autoplay: window.localStorage.getItem("autoplay") || "false",
+        loop: window.localStorage.getItem("loop") || "loop",
+        volume_mode: window.localStorage.getItem("volume_mode") || "remember",
+        volume: window.localStorage.getItem("volume") || "100"
+    };
+
+    sync_element.checked = settings.sync === "true";
+    sync_url_element.value = settings.sync_url.replace("<%= base_url %>", "").replace("/davbooru.json", "");
+    theme_element.value = settings.theme;
+    autoplay_element.value = settings.autoplay === "true";
+    loop_element.value = settings.loop;
+    volume_mode_element.value = settings.volume_mode;
+    volume_element.value = settings.volume;
+
+    sync_url_element.disabled = !sync_element.checked;
+    sync_settings_element.style.display = !sync_element.checked ? "none" : "inline-block";
+    save_settings_element.innerText = sync_element.checked ? "Save to cloud" : "Save";
+    volume_element.disabled = volume_mode_element.value !== "fixed";
+
+    sync_element.addEventListener("change", () => {
+        sync_url_element.disabled = !sync_element.checked;
+        sync_settings_element.style.display = !sync_element.checked ? "none" : "inline-block";
+        save_settings_element.innerText = sync_element.checked ? "Save to cloud" : "Save";
+    });
+
+    volume_mode_element.addEventListener("change", () => {
+        volume_element.disabled = volume_mode_element.value !== "fixed";
+    });
+
+    save_settings_element.addEventListener("click", () => {
+        const settings = {
+            sync: sync_element.checked,
+            sync_url: "<%= base_url %>" + sync_url_element.value + "/davbooru.json",
+            theme: theme_element.value,
+            autoplay: autoplay_element.value,
+            loop: loop_element.value,
+            volume_mode: volume_mode_element.value,
+            volume: volume_element.value
+        };
+
+        Object.entries(settings).forEach(([key, value]) => {
+            window.localStorage.setItem(key, value);
+        });
+
+        document.cookie = "theme=" + settings.theme;
+
+        if (settings.sync) {
+            fetch(settings.sync_url, {
+                method: "PUT",
+                body: JSON.stringify(window.localStorage),
+                credentials: "include"
+            }).then((response) => {
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert("Failed to sync settings: " + response.statusText);
+                }
+            }).catch((error) => {
+                alert("Failed to sync settings: " + error);
+            });
+        } else {
+            location.reload();
+        }
+    });
+
+    sync_settings_element.addEventListener("click", () => {
+        const settings = {
+            sync: sync_element.checked,
+            sync_url: "<%= base_url %>" + sync_url_element.value + "/davbooru.json",
+            theme: theme_element.value,
+            autoplay: autoplay_element.value,
+            loop: loop_element.value,
+            volume_mode: volume_mode_element.value,
+            volume: volume_element.value
+        };
+        fetch(settings.sync_url, {
+            method: "GET",
+            credentials: "include"
+        }).then((response) => {
+            if (response.ok) {
+                console.log(response);
+                response.json().then((data) => {
+                    Object.entries(data).forEach(([key, value]) => {
+                        window.localStorage.setItem(key, value);
+                    });
+                    document.cookie = "theme=" + window.localStorage.getItem("theme");
+                    location.reload();
+                });
+            } else {
+                alert("Failed to sync settings: " + response.statusText);
+            }
+        }).catch((error) => {
+            alert("Failed to sync settings: " + error);
+        });
+    });
+
+</script>
