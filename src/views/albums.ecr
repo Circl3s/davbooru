@@ -11,7 +11,7 @@
     </form>
   </div>
   <% paged_albums.each_with_index do |album, index| %>
-    <div class="col-12 col-md-3">
+    <div class="col-12 col-md-6 col-xl-3">
       <div class="card" style="height: 18rem;">
         <div class="row g-0 h-100">
           <div class="col-4 h-100">
@@ -28,7 +28,7 @@
               <h5 class="card-title">
                 <%= album.name %> <small class="text-body-secondary">#<%= album.id %></small>
               </h5>
-              <p class="card-text flex-grow-1 overflow-scroll">
+              <p class="card-text flex-grow-1 overflow-auto">
                 <%= album.description %>
               </p>
               <div class="d-flex gap-2">
