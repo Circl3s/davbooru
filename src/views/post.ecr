@@ -211,9 +211,18 @@
                             Add to blacklist
                         </label>
                     </div>
+                    <div class="d-flex form-check form-switch align-items-center justify-content-center">
+                        <input class="form-check-input" type="checkbox" role="switch" name="delete" id="delete-resource" value="true">
+                        <label class="form-check-label m-2" for="delete-resource">
+                            Delete from WebDAV server
+                        </label>
+                    </div>
+                    <p class="my-2 text-center text-danger" id="delete-warning" style="display: none;">
+                        <b>Warning:</b> This will delete the underlying resource from the WebDAV server and prevent it from being indexed again. Depending on the implementation, this may be irreversible. You can only delete files from the WebDAV server if you have the necessary permissions.
+                    </p>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-danger">Delete</button>
+                    <button type="submit" class="btn btn-danger" id="confirm-delete">Delete</button>
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" aria-label="Cancel">Cancel</button>
                 </div>
             </form>
@@ -223,6 +232,17 @@
 <script>
     const tag_edit = document.getElementById("tags-text-area");
     const fav_btn = document.getElementById("fav");
+    const delete_form = document.getElementById("delete-form");
+    const delete_warning = document.getElementById("delete-warning");
+    const delete_checkbox = document.getElementById("delete-resource");
+
+    delete_checkbox.addEventListener("change", (ev) => {
+        if (ev.target.checked) {
+            delete_warning.style.display = "block";
+        } else {
+            delete_warning.style.display = "none";
+        }
+    });
 
     let last_album_id = localStorage.getItem("last_album_id");
     if (last_album_id) {
@@ -384,5 +404,33 @@
                 download_spinner.classList.add("invisible");
                 download_text.classList.remove("invisible");
             });
+    });
+
+    delete_form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        let confirm_delete = document.getElementById("confirm-delete");
+        if (delete_checkbox.checked) {
+            confirm_delete.disabled = true;
+            confirm_delete.classList.add("disabled");
+
+            fetch("<%= post.url %>", {
+                method: "DELETE",
+                credentials: "include"
+            }).then((response) => {
+                if (response.ok) {
+                    delete_form.submit();
+                } else {
+                    alert("Failed to delete post: " + response.statusText);
+                    confirm_delete.disabled = false;
+                    confirm_delete.classList.remove("disabled");
+                }
+            }).catch((error) => {
+                alert("Failed to delete post: " + error);
+                confirm_delete.disabled = false;
+                confirm_delete.classList.remove("disabled");
+            });
+        } else {
+            delete_form.submit();
+        }
     });
 </script>
