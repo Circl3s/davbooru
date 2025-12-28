@@ -1,4 +1,15 @@
 <div class="position-absolute top-100 my-2 z-3" id="<%= search_id %>-suggest" hidden>
+    <style>
+        #<%= search_id %>-suggest-items .active {
+            background-color: var(--bs-primary-bg-subtle);
+            border-color: var(--bs-primary-border-subtle);
+        }
+
+        #<%= search_id %>-suggest-items .active::after {
+            content: " Tab";
+            color: var(--bs-secondary-text-emphasis);
+        }
+    </style>
     <ul class="list-group" id="<%= search_id %>-suggest-items">
         
     </ul>
@@ -10,6 +21,16 @@
     var timeout;
     var tags = [];
     var negative = false;
+    var active_tag = 0;
+
+    function insertAtCaret(text) {
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        input.value = input.value.substring(0, start) + text + input.value.substring(end);
+        input.setSelectionRange(start + text.length, start + text.length);
+        input.focus();
+        input.dispatchEvent(new Event("input", { "bubbles": true }));
+    }
 
     function complete(tag, negative = false) {
         let text = input.value;
@@ -27,6 +48,7 @@
         newValue += " ";
         input.value = newValue;
         suggestBox.hidden = true;
+        input.setSelectionRange(begin + tag.name.length + 1 + (negative ? 1 : 0), begin + tag.name.length + 1 + (negative ? 1 : 0));
         input.focus();
         input.dispatchEvent(new Event("input", { "bubbles": true }));
     }
@@ -48,23 +70,22 @@
         items.innerHTML = "";
 
         fetch(`/api/suggest?q=${encodeURIComponent(word)}${(input.hasAttribute("data-no-pseudo") || negative) ? "&nopseudo=1" : ""}`).then(async res => {
+            active_tag = 0;
             tags = await res.json();
             tags.forEach((tag, i) => {
                 let item = document.createElement("a");
                 item.classList.add("list-group-item");
                 item.classList.add("list-group-item-action");
+                item.classList.add("cursor-pointer");
+                if (i == active_tag) {
+                    item.classList.add("active");
+                }
                 item.innerText = tag.name;
                 item.style.color = tag.color;
                 item.onmousedown = (e) => {
                     e.preventDefault();
                     complete(tag, negative)
                 };
-                if (i == 0) {
-                    let tab = document.createElement("em");
-                    tab.classList.add("text-body-secondary");
-                    tab.innerText = " Tab";
-                    item.appendChild(tab);
-                }
                 items.appendChild(item);
             });
             suggestBox.hidden = false;
@@ -73,17 +94,33 @@
 
     input.addEventListener("keydown", (ev) => {
         clearTimeout(timeout);
-        let key = ev.code
-        if (key == "Tab") {
-            if (tags.length > 0) {
-                ev.preventDefault();
-                complete(tags[0], negative)
-            }
-        } else if (!["Space", "Backspace", "Escape"].includes(key)) {
+
+        let key = ev.key;
+        if (key == " " && ev.shiftKey) {
+            ev.preventDefault();
+            insertAtCaret("_");
+            timeout = setTimeout(suggest, 500);
+        } else if (key == "Tab" && tags.length > 0) {
+            ev.preventDefault();
+            complete(tags[active_tag], negative)
+        } else if (![" ", "Backspace", "Escape", "ArrowUp", "ArrowDown", "Tab", "Shift"].includes(key)) {
             timeout = setTimeout(suggest, 500);
         }
-        suggestBox.hidden = true;
-        tags = [];
+        if (["ArrowUp", "ArrowDown"].includes(key) && tags.length > 0) {
+            ev.preventDefault();
+            if (key == "ArrowUp") {
+                items.children[active_tag].classList.remove("active");
+                active_tag = (active_tag - 1 + tags.length) % tags.length;
+                items.children[active_tag].classList.add("active");
+            } else {
+                items.children[active_tag].classList.remove("active");
+                active_tag = (active_tag + 1) % tags.length;
+                items.children[active_tag].classList.add("active");
+            }
+        } else {
+            suggestBox.hidden = true;
+            tags = [];
+        }
     });
 
     document.addEventListener("mouseup", (ev) => {

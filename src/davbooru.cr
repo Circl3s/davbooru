@@ -92,7 +92,7 @@ module Davbooru
   end
 
   db = DB.open("sqlite3://./#{testing ? "test" : "davbooru"}.db?journal_mode=wal&synchronous=normal&foreign_keys=true")
-  
+
   # Migration: Add etag column if it doesn't exist
   begin
     db.exec "ALTER TABLE posts ADD COLUMN etag TEXT"
@@ -162,7 +162,7 @@ module Davbooru
       render "src/views/error.ecr", "src/views/layout.ecr"
     else
       total_pages = (total_posts / QueryBuilder::DEFAULT_PAGE_SIZE).ceil
-      paged_posts = posts[(page * QueryBuilder::DEFAULT_PAGE_SIZE)..((page+1) * QueryBuilder::DEFAULT_PAGE_SIZE) - 1]
+      paged_posts = posts[(page * QueryBuilder::DEFAULT_PAGE_SIZE)..((page + 1) * QueryBuilder::DEFAULT_PAGE_SIZE) - 1]
 
       unless qb.unknown_tags.empty?
         env.flash["toast-enabled"] = "true"
@@ -244,7 +244,7 @@ module Davbooru
     invalid_tags = [] of String
     tag_names.each do |name|
       next if name.blank?
-      tag = Tag.cache.values.find {|t| t.name == name}
+      tag = Tag.cache.values.find { |t| t.name == name }
       unless tag
         db.query "SELECT tags.*, categories.name FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.name = ? LIMIT 1", name.strip do |rs|
           rs.each do
@@ -303,11 +303,11 @@ module Davbooru
       env.flash["toast-type"] = "danger"
     else
       db.exec "UPDATE posts SET kudos = kudos + 1 WHERE id = ?", post_id
-      
+
       env.flash["toast-title"] = "Success"
       env.flash["toast-body"] = "Successfully #{nsfw ? "came" : "sent kudos"} to ##{post_id}!"
       env.flash["toast-type"] = "success"
-      env.response.cookies << HTTP::Cookie.new(name: "kudos", value: "true", path: "/post/#{post_id}/kudos", expires: (Time.utc() + 1.day).at_beginning_of_day)
+      env.response.cookies << HTTP::Cookie.new(name: "kudos", value: "true", path: "/post/#{post_id}/kudos", expires: (Time.utc + 1.day).at_beginning_of_day)
     end
 
     env.redirect "/post/#{post_id}?q=#{search_param}"
@@ -390,7 +390,7 @@ module Davbooru
       env.redirect "/post/#{posts.sample.id}?q=#{search_param}"
     rescue e
       puts "RANDOM ERROR: #{e}"
-      env.redirect "/post/#{rand(indexer.get_total())}"
+      env.redirect "/post/#{rand(indexer.get_total)}"
     end
   end
 
@@ -566,12 +566,12 @@ module Davbooru
         end
       end
     end
-    
+
     total_albums = albums.size
-    
+
     total_pages = (total_albums / 12).ceil
-    paged_albums = albums[(page * 12)..((page+1) * 12) - 1]
-    paged_first_posts = first_posts[(page * 12)..((page+1) * 12) - 1]
+    paged_albums = albums[(page * 12)..((page + 1) * 12) - 1]
+    paged_first_posts = first_posts[(page * 12)..((page + 1) * 12) - 1]
 
     unless qb.unknown_tags.empty?
       env.flash["toast-enabled"] = "true"
@@ -587,7 +587,7 @@ module Davbooru
   post "/albums/create" do |env|
     name = env.params.body["name"]
     description = env.params.body["description"]
-    
+
     begin
       db.exec "INSERT INTO albums (name, description) VALUES (?, ?)", name, description
       env.flash["toast-enabled"] = "true"
@@ -633,7 +633,7 @@ module Davbooru
     id = env.params.url["id"].to_i64
     name = env.params.body["name"]
     description = env.params.body["description"]
-    
+
     begin
       db.exec "UPDATE albums SET name = ?, description = ? WHERE id = ?", name, description, id
       env.flash["toast-enabled"] = "true"
@@ -655,7 +655,7 @@ module Davbooru
 
     valid_album = begin db.scalar("SELECT 1 FROM albums WHERE id = ?", album_id).as(Int64?) rescue nil end
     valid_post = begin db.scalar("SELECT 1 FROM posts WHERE id = ?", post_id).as(Int64?) rescue nil end
-    
+
     if valid_album.nil?
       env.flash["toast-enabled"] = "true"
       env.flash["toast-title"] = "Error"
@@ -672,7 +672,7 @@ module Davbooru
       # Get max order
       max_order = 0
       max_order = db.scalar("SELECT MAX(\"order\") FROM album_posts WHERE album_id = ?", album_id).as(Int64?) || 0
-      
+
       begin
         db.exec "INSERT OR IGNORE INTO album_posts (album_id, post_id, \"order\") VALUES (?, ?, ?)", album_id, post_id, max_order + 1
         env.flash["toast-enabled"] = "true"
@@ -692,7 +692,7 @@ module Davbooru
   post "/album/:id/remove" do |env|
     album_id = env.params.url["id"].to_i64
     post_id = env.params.body["post_id"].to_i64
-    
+
     db.exec "DELETE FROM album_posts WHERE album_id = ? AND post_id = ?", album_id, post_id
     env.redirect "/album/#{album_id}"
   end
@@ -730,14 +730,14 @@ module Davbooru
   get "/wiki/*page" do |env|
     page = env.params.url["page"]
     page = page + ".md" unless page.ends_with?(".md")
-    
+
     all_articles = Wiki.all_articles
     article = Wiki.from_path(page)
     if article.nil?
       env.redirect "/wiki"
     else
       mentioned_tags = article.mentioned_tags(db)
-      
+
       site_title = "#{article.title} | DAVbooru"
       render "src/views/wiki.ecr", "src/views/layout.ecr"
     end
@@ -753,9 +753,9 @@ module Davbooru
     render "src/views/admin.ecr", "src/views/layout.ecr"
   end
 
-  #*
-  #* API
-  #*
+  # *
+  # * API
+  # *
 
   get "/api/suggest" do |env|
     env.response.headers["Content-Type"] = "application/json"
@@ -794,10 +794,12 @@ module Davbooru
       end
     end.join
 
-    db.query "SELECT tags.*, categories.name FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.name LIKE ? ESCAPE '\\' \
+    db.query "SELECT * FROM (SELECT tags.*, categories.name AS category_name, 1 AS priority FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.name LIKE ? ESCAPE '\\' \
       UNION \
-      SELECT tags.*, categories.name FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.name LIKE ? \
-      ORDER BY tags.name ASC LIMIT 5", "#{abbr_query}", "#{query}%" do |rs|
+      SELECT tags.*, categories.name AS category_name, 0 AS priority FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.name LIKE ? \
+      UNION \
+      SELECT tags.*, categories.name AS category_name, 2 AS priority FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.name LIKE ?) \
+      GROUP BY name ORDER BY priority ASC, name ASC LIMIT 5", "#{abbr_query}", "#{query}%", "%#{query}%" do |rs|
       rs.each do
         tags << Tag.from_row(rs)
       end

@@ -28,9 +28,9 @@
         </div>
         <h3>Info</h3>
         <b>Filename:</b>
-        <p class="text-nowrap text-center font-monospace overflow-x-scroll p-2 bg-secondary-subtle" style="direction: rtl;"><%= HTML.escape(post.name).gsub(/([\.\,\!\?\_\-\+])/, "&lrm;\\1") %></p>
+        <p class="text-nowrap text-center font-monospace overflow-x-scroll p-2 bg-secondary-subtle" style="direction: rtl;">&lrm;<%= HTML.escape(post.name).gsub(/([\.\,\!\?\_\-\+])/, "&lrm;\\1") %></p>
         <b>Path:</b>
-        <p class="text-nowrap text-center font-monospace overflow-x-scroll p-2 bg-secondary-subtle" style="direction: rtl;"><a class="text-decoration-none text-body" href="/search?q=path:%22<%= HTML.escape(URI.encode_www_form(post.path)) %>%22&p=0"><%= HTML.escape(post.path).gsub(/([\.\,\!\?\_\-\+])/, "&lrm;\\1") %></a></p>
+        <p class="text-nowrap text-center font-monospace overflow-x-scroll p-2 bg-secondary-subtle" style="direction: rtl;"><a class="text-decoration-none text-body" href="/search?q=path:%22<%= HTML.escape(URI.encode_www_form(post.path)) %>%22&p=0">&lrm;<%= HTML.escape(post.path).gsub(/([\.\,\!\?\_\-\+])/, "&lrm;\\1") %></a></p>
         <div class="row mb-2 align-items-center justify-content-between">
             <div class="col-3">
                 <b>Albums:</b>
