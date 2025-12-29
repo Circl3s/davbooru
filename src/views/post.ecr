@@ -184,12 +184,32 @@
                             <%= render "./src/views/components/suggestions.ecr" %>
                         </div>
                     </div>
-                    <div class="my-2">
-                        <label for="popular-tags" class="form-label">Popular tags</label>
-                        <div class="d-flex flex-wrap gap-1" id="popular-tags">
+                    <div class="my-2" id="popular-path-tags-container">
+                        <div class="row d-flex justify-content-between align-items-center">
+                            <label for="popular-path-tags" class="form-label col-6 m-0">Popular tags on this path</label>
+                            <div class="col-6 text-end">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="popular-path-tags-button" data-bs-toggle="collapse" data-bs-target="#popular-path-tags" aria-expanded="true" aria-controls="popular-path-tags">Show</button>
+                            </div>
+                        </div>
+                        <div class="collapse show" id="popular-path-tags">
+                            <% popular_path_tags.each do |tag| %>
+                                <span class="badge bg-secondary-subtle" style="cursor: pointer; color: <%= tag.color %>"><%= HTML.escape(tag.name) %></span>
+                            <% end %>
+                            <i class="d-none text-secondary" id="popular-path-tags-end">No more relevant tags left to show</i>
+                        </div>
+                    </div>
+                    <div class="my-2" id="popular-tags-container">
+                        <div class="row d-flex justify-content-between align-items-center">
+                            <label for="popular-tags" class="form-label col-6 m-0">Popular tags</label>
+                            <div class="col-6 text-end">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="popular-tags-button" data-bs-toggle="collapse" data-bs-target="#popular-tags" aria-expanded="false" aria-controls="popular-tags">Show</button>
+                            </div>
+                        </div>
+                        <div class="collapse" id="popular-tags">
                             <% popular_tags.each do |tag| %>
                                 <span class="badge bg-secondary-subtle" style="cursor: pointer; color: <%= tag.color %>"><%= HTML.escape(tag.name) %></span>
                             <% end %>
+                            <i class="d-none text-secondary" id="popular-tags-end">No more relevant tags left to show</i>
                         </div>
                     </div>
                 </div>
@@ -244,7 +264,12 @@
     const delete_warning = document.getElementById("delete-warning");
     const delete_checkbox = document.getElementById("delete-resource");
     const popular_tags = document.getElementById("popular-tags");
-
+    const popular_path_tags = document.getElementById("popular-path-tags");
+    const popular_tags_container = document.getElementById("popular-tags-container");
+    const popular_path_tags_container = document.getElementById("popular-path-tags-container");
+    const popular_tags_end = document.getElementById("popular-tags-end");
+    const popular_path_tags_end = document.getElementById("popular-path-tags-end");
+    
     Array.from(popular_tags.children).forEach((tag) => {
         if (tag_edit.value.toLowerCase().includes(tag.textContent.toLowerCase())) {
             tag.classList.add("d-none");
@@ -252,8 +277,30 @@
         tag.addEventListener("click", () => {
             tag_edit.value += " " + tag.textContent;
             tag.classList.add("d-none");
+            tag_edit.dispatchEvent(new Event("input", { "bubbles": true }));
         });
     });
+    if (Array.from(popular_tags.children).every(t => t === popular_tags_end || t.classList.contains("d-none"))) {
+        popular_tags_end.classList.remove("d-none");
+    } else {
+        popular_tags_end.classList.add("d-none");
+    }
+
+    Array.from(popular_path_tags.children).forEach((tag) => {
+        if (tag_edit.value.toLowerCase().includes(tag.textContent.toLowerCase())) {
+            tag.classList.add("d-none");
+        }
+        tag.addEventListener("click", () => {
+            tag_edit.value += " " + tag.textContent;
+            tag.classList.add("d-none");
+            tag_edit.dispatchEvent(new Event("input", { "bubbles": true }));
+        });
+    });
+    if (Array.from(popular_path_tags.children).every(t => t === popular_path_tags_end || t.classList.contains("d-none"))) {
+        popular_path_tags_end.classList.remove("d-none");
+    } else {
+        popular_path_tags_end.classList.add("d-none");
+    }
 
     tag_edit.addEventListener("input", () => {
         Array.from(popular_tags.children).forEach((tag) => {
@@ -263,6 +310,23 @@
                 tag.classList.remove("d-none");
             }
         });
+        Array.from(popular_path_tags.children).forEach((tag) => {
+            if (tag_edit.value.toLowerCase().includes(tag.textContent.toLowerCase())) {
+                tag.classList.add("d-none");
+            } else {
+                tag.classList.remove("d-none");
+            }
+        });
+        if (Array.from(popular_tags.children).every(t => t === popular_tags_end || t.classList.contains("d-none"))) {
+            popular_tags_end.classList.remove("d-none");
+        } else {
+            popular_tags_end.classList.add("d-none");
+        }
+        if (Array.from(popular_path_tags.children).every(t => t === popular_path_tags_end || t.classList.contains("d-none"))) {
+            popular_path_tags_end.classList.remove("d-none");
+        } else {
+            popular_path_tags_end.classList.add("d-none");
+        }
     });
 
     delete_checkbox.addEventListener("change", (ev) => {
