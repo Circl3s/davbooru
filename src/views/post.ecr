@@ -184,6 +184,14 @@
                             <%= render "./src/views/components/suggestions.ecr" %>
                         </div>
                     </div>
+                    <div class="my-2">
+                        <label for="popular-tags" class="form-label">Popular tags</label>
+                        <div class="d-flex flex-wrap gap-1" id="popular-tags">
+                            <% popular_tags.each do |tag| %>
+                                <span class="badge bg-secondary-subtle" style="cursor: pointer; color: <%= tag.color %>"><%= HTML.escape(tag.name) %></span>
+                            <% end %>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-primary">Submit</button>
@@ -235,6 +243,27 @@
     const delete_form = document.getElementById("delete-form");
     const delete_warning = document.getElementById("delete-warning");
     const delete_checkbox = document.getElementById("delete-resource");
+    const popular_tags = document.getElementById("popular-tags");
+
+    Array.from(popular_tags.children).forEach((tag) => {
+        if (tag_edit.value.toLowerCase().includes(tag.textContent.toLowerCase())) {
+            tag.classList.add("d-none");
+        }
+        tag.addEventListener("click", () => {
+            tag_edit.value += " " + tag.textContent;
+            tag.classList.add("d-none");
+        });
+    });
+
+    tag_edit.addEventListener("input", () => {
+        Array.from(popular_tags.children).forEach((tag) => {
+            if (tag_edit.value.toLowerCase().includes(tag.textContent.toLowerCase())) {
+                tag.classList.add("d-none");
+            } else {
+                tag.classList.remove("d-none");
+            }
+        });
+    });
 
     delete_checkbox.addEventListener("change", (ev) => {
         if (ev.target.checked) {

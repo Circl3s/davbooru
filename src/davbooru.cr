@@ -183,6 +183,7 @@ module Davbooru
     album_id = env.params.query["album"]?
     album = nil
     album_posts = [] of Post
+    popular_tags = [] of Tag
 
     db.query "SELECT * FROM posts WHERE id = ? LIMIT 1", env.params.url["id"].to_i64 do |rs|
       rs.each do
@@ -225,6 +226,13 @@ module Davbooru
           end
         end
         current_post_index = album_posts.map { |p| p.id }.index(post.id)
+      end
+
+      db.query "SELECT tags.*, categories.name, COUNT(post_tags.post_id) AS count FROM tags JOIN post_tags ON post_tags.tag_id = tags.id JOIN categories ON categories.id = tags.category_id WHERE tags.id != 1 GROUP BY tags.id ORDER BY count DESC, name ASC LIMIT 20" do |rs|
+        rs.each do
+          tag = Tag.from_row(rs)
+          popular_tags << tag
+        end
       end
 
       env.set "thumb", post.thumbnail

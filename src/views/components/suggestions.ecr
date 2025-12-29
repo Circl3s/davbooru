@@ -44,8 +44,8 @@
             newValue += "-"
         }
         newValue += tag.name;
-        newValue += text.substring(end, text.length);
         newValue += " ";
+        newValue += text.substring(end, text.length);
         input.value = newValue;
         suggestBox.hidden = true;
         input.setSelectionRange(begin + tag.name.length + 1 + (negative ? 1 : 0), begin + tag.name.length + 1 + (negative ? 1 : 0));
