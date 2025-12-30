@@ -21,7 +21,7 @@
                 <h4 class="m-0"><%= nsfw ? "Cum counter:" : "Kudos:" %> <span id="kudos"><%= post.kudos %></span></h4>
             </div>
             <div class="col-6 text-end">
-                <form action="/post/<%= post.id %>/kudos?q=<%= search_param %>" method="POST">
+                <form action="/post/<%= post.id %>/kudos?q=<%= search_param %>&album=<%= album_id %>" method="POST">
                     <input type="submit" class="btn btn-sm btn-outline-success" value="<%= nsfw ? "Cum" : "Send Kudos" %>"></input>
                 </form>
             </div>
@@ -170,7 +170,7 @@
 <div class="modal fade overflow-hidden" id="tags-modal" tabindex="-1" aria-labelledby="tags-modal-label" aria-hidden="true">
     <div class="modal-dialog modal-fullscreen-sm-down">
         <div class="modal-content">
-            <form action="/post/<%= post.id %>/edit?q=<%= search_param %>" method="POST" id="tags-form">
+            <form action="/post/<%= post.id %>/edit?q=<%= search_param %>&album=<%= album_id %>" method="POST" id="tags-form">
                 <div class="modal-header">
                     <h1 class="modal-title fs-5" id="tags-modal-label">Edit tags</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
