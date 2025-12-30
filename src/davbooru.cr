@@ -262,10 +262,10 @@ module Davbooru
 
   post "/post/:id/edit" do |env|
     search_param = URI.encode_www_form(env.params.query["q"]? || "")
-    album_param = env.params.query["album"]?
+    album_param = env.params.query["album"]? || ""
     post_id = env.params.url["id"]
     back_url = "/post/#{post_id}?q=#{search_param}"
-    unless album_param.nil?
+    unless album_param.empty?
       back_url += "&album=#{album_param}"
     end
     tag_string = env.params.body["tags"]
@@ -324,7 +324,7 @@ module Davbooru
 
   post "/post/:id/kudos" do |env|
     search_param = URI.encode_www_form(env.params.query["q"]? || "")
-    album_param = env.params.query["album"]?
+    album_param = env.params.query["album"]? || ""
     post_id = env.params.url["id"]
     cookie = env.request.cookies["kudos"]?
     env.flash["toast-enabled"] = "true"
@@ -341,7 +341,7 @@ module Davbooru
       env.response.cookies << HTTP::Cookie.new(name: "kudos", value: "true", path: "/post/#{post_id}/kudos", expires: (Time.utc + 1.day).at_beginning_of_day)
     end
 
-    env.redirect "/post/#{post_id}?q=#{search_param}#{album_param.nil? ? "" : "&album=#{album_param}"}"
+    env.redirect "/post/#{post_id}?q=#{search_param}#{album_param.empty? ? "" : "&album=#{album_param}"}"
   end
 
   post "/post/:id/delete" do |env|
