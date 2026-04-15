@@ -1,0 +1,27 @@
+const isFirefox = /Firefox/.test(navigator.userAgent);
+
+self.addEventListener("fetch", ev => {
+    const url = new URL(ev.request.url);
+    const isMedia = ev.target.tagName == "video" || ev.target.tagName == "img"
+
+    if (url.toString().includes("<%= base_url %>") && isMedia && (!isFirefox || ev.target.tagName != "video")) {
+        ev.respondWith(handleProxy(ev.request));
+    }
+});
+
+async function handleProxy(request) {
+    const url = new URL(request.url);
+    const method = request.method;
+    const cookie = await cookieStore.get("webdav-auth");
+
+    const headers = new Headers(request.headers);
+    headers.set("Authorization", `Basic ${cookie.value}`);
+
+    const proxiedRequest = new Request(url, {
+        method: method,
+        headers: headers
+    });
+
+    const response = await fetch(proxiedRequest);
+    return response;
+}

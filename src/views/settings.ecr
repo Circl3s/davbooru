@@ -143,7 +143,7 @@
         volume_element.disabled = volume_mode_element.value !== "fixed";
     });
 
-    save_settings_element.addEventListener("click", () => {
+    save_settings_element.addEventListener("click", async () => {
         const settings = {
             sync: sync_element.checked,
             sync_url: "<%= base_url %>" + sync_url_element.value + "/davbooru.json",
@@ -161,10 +161,18 @@
         document.cookie = "theme=" + settings.theme;
 
         if (settings.sync) {
+            const webdav_auth = await window.cookieStore.get("webdav-auth");
+            if (!webdav_auth) {
+                alert("Not signed in to WebDAV. Please sign in first.");
+                window.location.href = "/signin";
+                return;
+            }
             fetch(settings.sync_url, {
                 method: "PUT",
                 body: JSON.stringify(window.localStorage),
-                credentials: "include"
+                headers: {
+                    "Authorization": "Basic " + webdav_auth.value
+                }
             }).then((response) => {
                 if (response.ok) {
                     location.reload();
@@ -179,7 +187,13 @@
         }
     });
 
-    sync_settings_element.addEventListener("click", () => {
+    sync_settings_element.addEventListener("click", async () => {
+        const webdav_auth = await window.cookieStore.get("webdav-auth");
+        if (!webdav_auth) {
+            alert("Not signed in to WebDAV. Please sign in first.");
+            window.location.href = "/signin";
+            return;
+        }
         const settings = {
             sync: sync_element.checked,
             sync_url: "<%= base_url %>" + sync_url_element.value + "/davbooru.json",
@@ -191,7 +205,9 @@
         };
         fetch(settings.sync_url, {
             method: "GET",
-            credentials: "include"
+            headers: {
+                "Authorization": "Basic " + webdav_auth.value
+            }
         }).then((response) => {
             if (response.ok) {
                 console.log(response);

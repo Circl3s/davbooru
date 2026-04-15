@@ -98,6 +98,12 @@
                 const should_autoplay = window.localStorage.getItem("autoplay") || "false";
                 const vid = document.getElementById("vid");
 
+                document.getElementById("vid").addEventListener("error", async ev => {
+                    ev.preventDefault();
+                    const webdav_auth = await cookieStore.get("webdav_auth");
+                    document.getElementById("content").innerHTML = `<h1>It seems like the underlying resource doesn't exist anymore or you don't have permission to view it.${webdav_auth ? "" : "<br />Have you tried <a href='/signin'>signing in</a>?"}<br /></h1>`;
+                });
+
                 const syncPromise = new Promise(resolve => {
                     document.addEventListener("sync", resolve);
                 });
@@ -145,6 +151,13 @@
             </script>
             <% elsif post.type.includes? "image" %>
             <img class="object-fit-contain h-100 w-100" src="<%= post.url %>" id="img">
+            <script>
+                document.getElementById("img").addEventListener("error", async ev => {
+                    ev.preventDefault();
+                    const webdav_auth = await cookieStore.get("webdav_auth");
+                    document.getElementById("content").innerHTML = `<h1>It seems like the underlying resource doesn't exist anymore or you don't have permission to view it.${webdav_auth ? "" : "<br />Have you tried <a href='/signin'>signing in</a>?"}<br /></h1>`;
+                });
+            </script>
             <% else %>
             <h1>Unknown media, sorry. :(</h1>
             <% end %>
@@ -343,7 +356,7 @@
         document.getElementById("album-id").value = last_album_id;
     }
 
-    document.addEventListener("sync", (ev) => {
+    document.addEventListener("sync", async (ev) => {
         console.log("Synced in post");
         let favs = localStorage.getItem("favourites")?.split(";") ?? [];
         let is_favourite = favs.includes("<%= post.id %>");
@@ -351,15 +364,23 @@
             fav_btn.classList.remove("btn-success");
             fav_btn.classList.add("btn-danger");
             fav_btn.innerText = "Unfavourite";
-            fav_btn.onclick = () => {
+            fav_btn.onclick = async () => {
                 fav_btn.disabled = true;
                 favs = favs.filter(i => i != "<%= post.id %>");
                 localStorage.setItem("favourites", favs.join(";"));
                 if (localStorage.getItem("sync") === "true") {
+                    const webdav_auth = await window.cookieStore.get("webdav-auth");
+                    if (!webdav_auth) {
+                        alert("Not signed in to WebDAV. Please sign in first.");
+                        window.location.href = "/signin";
+                        return;
+                    }
                     fetch(localStorage.getItem("sync_url"), {
                     method: "PUT",
                     body: JSON.stringify(window.localStorage),
-                    credentials: "include"
+                    headers: {
+                        "Authorization": "Basic " + webdav_auth.value
+                    }
                     }).then((response) => {
                         if (response.ok) {
                             location.reload();
@@ -376,15 +397,23 @@
         } else {
             fav_btn.classList.remove("btn-danger");
             fav_btn.classList.add("btn-success");
-            fav_btn.onclick = () => {
+            fav_btn.onclick = async () => {
                 fav_btn.disabled = true;
                 favs.push("<%= post.id %>");
                 localStorage.setItem("favourites", favs.join(";"));
                 if (localStorage.getItem("sync") === "true") {
+                    const webdav_auth = await window.cookieStore.get("webdav-auth");
+                    if (!webdav_auth) {
+                        alert("Not signed in to WebDAV. Please sign in first.");
+                        window.location.href = "/signin";
+                        return;
+                    }
                     fetch(localStorage.getItem("sync_url"), {
                     method: "PUT",
                     body: JSON.stringify(window.localStorage),
-                    credentials: "include"
+                    headers: {
+                        "Authorization": "Basic " + webdav_auth.value
+                    }
                     }).then((response) => {
                         if (response.ok) {
                             location.reload();
@@ -439,24 +468,6 @@
         }
     })
 
-    // Trick browser into authorization
-    document.getElementById("img")?.addEventListener("error", (ev) => {
-        let fake_video = document.createElement("video");
-        fake_video.onerror = () => {
-            if (!window.location.href.includes("reloaded=1")) {
-                let reload_url = new URL(window.location.href);
-                reload_url.searchParams.append("reloaded", "1");
-                location.replace(reload_url.href);
-            } else {
-                document.getElementById("content").innerHTML = "<h1>It seems like the underlying resource doesn't exist anymore. :(</h1>";
-            }
-        }
-        fake_video.src = "<%= post.url %>";
-        fake_video.hidden = true;
-
-        document.appendChild(fake_video);
-    });
-
     document.getElementById("tags-modal").addEventListener("shown.bs.modal", (e) => {
         tag_edit.focus();
     });
@@ -480,7 +491,7 @@
         download_btn.disabled = true;
         download_text.classList.add("invisible");
         download_spinner.classList.remove("invisible");
-        fetch("<%= post.url %>", {credentials: "include"})
+        fetch("/proxy?file=<%= post.url %>")
             .then(response => response.blob())
             .then(blob => {
                 let url = URL.createObjectURL(blob);
@@ -506,9 +517,8 @@
             confirm_delete.disabled = true;
             confirm_delete.classList.add("disabled");
 
-            fetch("<%= post.url %>", {
-                method: "DELETE",
-                credentials: "include"
+            fetch("/proxy?file=<%= post.url %>", {
+                method: "DELETE"
             }).then((response) => {
                 if (response.ok) {
                     delete_form.submit();

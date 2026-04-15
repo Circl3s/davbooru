@@ -126,12 +126,22 @@ module Davbooru
     end
   end
 
+  get "/sw.js" do |env|
+    env.response.content_type = "application/javascript"
+    render "src/sw.js.ecr"
+  end
+
   get "/" do |env|
     site_title = "DAVbooru"
     media_count = indexer.get_total
     tagged = indexer.get_tagged
     tagging_progress = (tagged / media_count * 100).round(1)
     render "src/views/index.ecr", "src/views/layout.ecr"
+  end
+
+  get "/signin" do |env|
+    site_title = "Sign in | DAVbooru"
+    render "src/views/signin.ecr", "src/views/layout.ecr"
   end
 
   get "/search" do |env|

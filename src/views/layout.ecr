@@ -64,6 +64,9 @@
         }
     </style>
     <script>
+        navigator.serviceWorker.register("/sw.js").then(registration => {
+            registration.update()
+        });
         window.default_settings = {
             sync: false,
             sync_url: "",
@@ -111,6 +114,7 @@
                             Settings
                         </a>
                         <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/signin">Sign in</a></li>
                             <li><a class="dropdown-item" href="/settings">Preferences</a></li>
                             <li><a class="dropdown-item" href="/settings/admin">Admin</a></li>
                         </ul>
@@ -150,14 +154,16 @@
         const url_params = new URLSearchParams(window.location.search);
         const search_text = url_params.get('q') ?? "";
 
+        const cookie = window.cookieStore.get("webdav-auth");
+
         document.addEventListener("DOMContentLoaded", () => {
-            if (window.localStorage.getItem("sync") === "true") {
+            if (window.localStorage.getItem("sync") === "true" && cookie) {
                 fetch(window.localStorage.getItem("sync_url"), {
                     method: "GET",
                     headers: {
-                        "Content-Type": "application/json"
-                    },
-                    credentials: "include"
+                        "Content-Type": "application/json",
+                        "Authorization": `Basic ${cookie.value}`
+                    }
                 }).then((response) => {
                     if (response.ok) {
                         response.json().then((data) => {

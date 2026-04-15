@@ -1,0 +1,63 @@
+<main class="row m-4 justify-content-center">
+    <div class="col col-lg-4">
+        <h1>Sign in to WebDAV</h1>
+        <form id="webdav-form">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Sign in</button>
+        </form>
+        <form id="webdav-signout-form" style="display: none;">
+            <h2>Already signed in as <span id="webdav-username"></span>.</h2>
+            <button type="submit" class="btn btn-danger">Sign out</button>
+        </form>
+    </div>
+    <script>
+        window.cookieStore.get("webdav-auth").then(webdav_auth => {
+            if (webdav_auth) {
+                document.getElementById("webdav-form").style.display = "none";
+                document.getElementById("webdav-username").innerText = atob(webdav_auth.value).split(":")[0];
+                document.getElementById("webdav-signout-form").style.display = "block";
+            }
+        });
+
+        document.getElementById("webdav-form").addEventListener("submit", async event => {
+            event.preventDefault();
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            const auth = btoa(`${username}:${password}`);
+
+            const response = await fetch("<%= base_url %>", {
+                headers: {
+                    "Authorization": `Basic ${auth}`
+                }
+            });
+
+            if (!response.ok) {
+                alert("Failed to sign in to WebDAV. Check your credentials.");
+                return;
+            }
+
+            window.cookieStore.set({
+                name: "webdav-auth",
+                value: auth,
+                sameSite: "strict",
+                secure: true,
+                expires: new Date(Date.now() + 60 * 60 * 24 * 7 * 1000)
+            });
+
+            window.location.reload();
+        });
+
+        document.getElementById("webdav-signout-form").addEventListener("submit", async event => {
+            event.preventDefault();
+            window.cookieStore.delete("webdav-auth");
+            window.location.reload();
+        });
+    </script>
+</main>
