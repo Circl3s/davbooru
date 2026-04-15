@@ -91,17 +91,27 @@
     <div class="col-md-10 order-first order-md-last">
         <div class="container-fluid position-relative main-media" style="height: 80vh; max-width: 100%;" id="content">
             <% if post.type.includes? "video" %>
-            <video class="object-fit-contain h-100 w-100" src="<%= post.url %>" controls id="vid"></video>
+            <video class="object-fit-contain h-100 w-100" src="<%= post.url %>" controls id="vid" crossorigin="anonymous"></video>
             <script>
                 const loop_setting = window.localStorage.getItem("loop") || "loop";
                 const should_remember_volume = window.localStorage.getItem("volume_mode") || "remember";
                 const should_autoplay = window.localStorage.getItem("autoplay") || "false";
                 const vid = document.getElementById("vid");
 
+                var retried = false;
+
                 document.getElementById("vid").addEventListener("error", async ev => {
                     ev.preventDefault();
-                    const webdav_auth = await cookieStore.get("webdav_auth");
-                    document.getElementById("content").innerHTML = `<h1>It seems like the underlying resource doesn't exist anymore or you don't have permission to view it.${webdav_auth ? "" : "<br />Have you tried <a href='/signin'>signing in</a>?"}<br /></h1>`;
+                    const isFirefox = /Firefox/.test(navigator.userAgent);
+                    const webdav_auth = await cookieStore.get("webdav-auth");
+
+                    if (isFirefox && !retried) {
+                        retried = true;
+                        document.getElementById("vid").crossOrigin = "use-credentials";
+                        document.getElementById("vid").src = "<%= post.url %>";
+                    } else {
+                        document.getElementById("content").innerHTML = `<h1>It seems like the underlying resource doesn't exist anymore or you don't have permission to view it.${webdav_auth ? "" : "<br />Have you tried <a href='/signin'>signing in</a>?"}<br /></h1>`;
+                    }
                 });
 
                 const syncPromise = new Promise(resolve => {

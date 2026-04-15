@@ -2,9 +2,9 @@ const isFirefox = /Firefox/.test(navigator.userAgent);
 
 self.addEventListener("fetch", ev => {
     const url = new URL(ev.request.url);
-    const isMedia = ev.target.tagName == "video" || ev.target.tagName == "img"
+    const isMedia = ev.request.destination == "video" || ev.request.destination == "image"
 
-    if (url.toString().includes("<%= base_url %>") && isMedia && (!isFirefox || ev.target.tagName != "video")) {
+    if (url.toString().includes("<%= base_url %>") && isMedia && (!isFirefox || ev.request.destination != "video")) {
         ev.respondWith(handleProxy(ev.request));
     }
 });

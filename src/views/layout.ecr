@@ -154,9 +154,8 @@
         const url_params = new URLSearchParams(window.location.search);
         const search_text = url_params.get('q') ?? "";
 
-        const cookie = window.cookieStore.get("webdav-auth");
-
-        document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("DOMContentLoaded", async () => {
+            const cookie = await window.cookieStore.get("webdav-auth");
             if (window.localStorage.getItem("sync") === "true" && cookie) {
                 fetch(window.localStorage.getItem("sync_url"), {
                     method: "GET",
