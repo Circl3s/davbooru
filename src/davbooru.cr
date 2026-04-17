@@ -229,13 +229,16 @@ module Davbooru
         end
       end
 
+      if all_albums.size == 1
+        album = all_albums.first
+      end
+
       if album_id
-        db.query "SELECT * FROM albums WHERE id = ? LIMIT 1", album_id.to_i64 do |rs|
-          rs.each do
-            album = Album.from_row(rs)
-            album_posts = album.posts(db, indexer)
-          end
-        end
+        album = all_albums.find { |a| a.id == album_id.to_i64 }
+      end
+
+      unless album.nil?
+        album_posts = album.posts(db, indexer)
         current_post_index = album_posts.map { |p| p.id }.index(post.id)
       end
 
