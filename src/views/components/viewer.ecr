@@ -4,7 +4,7 @@
     <% if post.type.includes? "video" %>
     <video class="object-fit-contain h-100 w-100" src="<%= post.url %>" controls id="vid" crossorigin="anonymous"></video>
     <div id="vid-overlay" class="position-absolute top-0 start-0 w-100 h-100 d-none"></div>
-    <script>
+    <script type="module">
         const loop_setting = window.localStorage.getItem("loop") || "loop";
         const should_remember_volume = window.localStorage.getItem("volume_mode") || "remember";
         const should_autoplay = window.localStorage.getItem("autoplay") || "false";
@@ -82,7 +82,7 @@
     </script>
     <% elsif post.type.includes? "image" %>
     <img class="object-fit-contain h-100 w-100" src="<%= post.url %>" id="img">
-    <script>
+    <script type="module">
         const img = document.getElementById("img");
         const container = document.getElementById("content");
         const fake_container = document.getElementById("fake-content");
@@ -106,7 +106,7 @@
                 container.classList.remove("bg-opacity-50");
 
                 fake_container.classList.add("d-none");
-                
+
                 if (isMobile) {
                     document.exitFullscreen();
                     screen.orientation.unlock();

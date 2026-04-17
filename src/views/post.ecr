@@ -91,15 +91,7 @@
     <div class="col-md-10 order-first order-md-last">
         <%= render "./src/views/components/viewer.ecr" %>
         <% unless album.nil? %>
-        <div class="alert my-4 alert-info d-flex align-items-center justify-content-between" role="alert">
-            <% previous_post_index = current_post_index.not_nil! - 1 %>
-            <% next_post_index = current_post_index.not_nil! + 1 %>
-            <% previous_post = album_posts[previous_post_index]? %>
-            <% next_post = album_posts[next_post_index]? %>
-            <a href="/post/<%= previous_post.id if previous_post %>?album=<%= album.id %>" class="btn btn-sm btn-outline-info <%= previous_post_index < 0 ? "invisible" : "" %>">Previous</a>
-            <p class="my-0 mx-2">You're viewing this post as part of <a href="/album/<%= album.id %>"><%= album.name %></a>. <small>(<%= current_post_index.not_nil! + 1 %> of <%= album_posts.size %>)</small></p>
-            <a href="/post/<%= next_post.id if next_post %>?album=<%= album.id %>" class="btn btn-sm btn-outline-info <%= next_post_index >= album_posts.size ? "invisible" : "" %>">Next</a>
-        </div>
+            <%= render "./src/views/components/album_navigation.ecr" %>
         <% end %>
         <% unless duplicates.empty? %>
         <div class="alert my-4 alert-warning" role="alert">

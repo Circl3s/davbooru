@@ -64,7 +64,11 @@
         }
     </style>
     <script>
-        navigator.serviceWorker.register("/sw.js");
+        navigator.serviceWorker.getRegistration("/sw.js").then(registration => {
+            if (!registration) {
+                navigator.serviceWorker.register("/sw.js");
+            }
+        });
 
         window.default_settings = {
             sync: false,
