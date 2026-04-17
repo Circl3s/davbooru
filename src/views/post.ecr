@@ -422,7 +422,7 @@
                     method: "PUT",
                     body: JSON.stringify(window.localStorage),
                     headers: {
-                        "Authorization": "Basic " + webdav_auth.value
+                        "Authorization": `Basic ${webdav_auth.value}`
                     }
                     }).then((response) => {
                         if (response.ok) {
@@ -496,12 +496,17 @@
     const download_text = document.getElementById("download-text");
     const download_spinner = document.getElementById("download-spinner");
 
-    download_btn.addEventListener("click", (e) => {
+    download_btn.addEventListener("click", async (e) => {
         e.preventDefault();
         download_btn.disabled = true;
         download_text.classList.add("invisible");
         download_spinner.classList.remove("invisible");
-        fetch("/proxy?file=<%= post.url %>")
+        const webdav_auth = await cookieStore.get("webdav-auth");
+        fetch("<%= post.url %>", {
+            headers: {
+                "Authorization": `Basic ${webdav_auth.value}`
+            }
+        })
             .then(response => response.blob())
             .then(blob => {
                 let url = URL.createObjectURL(blob);
@@ -520,15 +525,20 @@
             });
     });
 
-    delete_form.addEventListener("submit", (e) => {
+    delete_form.addEventListener("submit", async (e) => {
         e.preventDefault();
         let confirm_delete = document.getElementById("confirm-delete");
         if (delete_checkbox.checked) {
             confirm_delete.disabled = true;
             confirm_delete.classList.add("disabled");
 
-            fetch("/proxy?file=<%= post.url %>", {
-                method: "DELETE"
+            const webdav_auth = await cookieStore.get("webdav-auth");
+
+            fetch("<%= post.url %>", {
+                method: "DELETE",
+                headers: {
+                    "Authorization": `Basic ${webdav_auth.value}`
+                }
             }).then((response) => {
                 if (response.ok) {
                     delete_form.submit();

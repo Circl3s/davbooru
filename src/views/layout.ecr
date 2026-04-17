@@ -64,9 +64,8 @@
         }
     </style>
     <script>
-        navigator.serviceWorker.register("/sw.js").then(registration => {
-            registration.update()
-        });
+        navigator.serviceWorker.register("/sw.js");
+
         window.default_settings = {
             sync: false,
             sync_url: "",
