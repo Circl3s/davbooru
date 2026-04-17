@@ -1,0 +1,158 @@
+<div class="container-fluid position-relative main-media d-none" style="height: 80vh; max-width: 100%;" id="fake-content">
+</div>
+<div class="container-fluid position-relative main-media" style="height: 80vh; max-width: 100%;" id="content">
+    <% if post.type.includes? "video" %>
+    <video class="object-fit-contain h-100 w-100" src="<%= post.url %>" controls id="vid" crossorigin="anonymous"></video>
+    <div id="vid-overlay" class="position-absolute top-0 start-0 w-100 h-100 d-none"></div>
+    <script>
+        const loop_setting = window.localStorage.getItem("loop") || "loop";
+        const should_remember_volume = window.localStorage.getItem("volume_mode") || "remember";
+        const should_autoplay = window.localStorage.getItem("autoplay") || "false";
+        const vid = document.getElementById("vid");
+        const vid_overlay = document.getElementById("vid-overlay");
+
+        var retried = false;
+
+        document.getElementById("vid").addEventListener("error", async ev => {
+            ev.preventDefault();
+            const isFirefox = /Firefox/.test(navigator.userAgent);
+            const webdav_auth = await cookieStore.get("webdav-auth");
+
+            if (isFirefox && !retried) {
+                retried = true;
+                document.getElementById("vid").crossOrigin = "use-credentials";
+                document.getElementById("vid").src = "<%= post.url %>";
+            } else {
+                document.getElementById("content").innerHTML = `<h1>It seems like the underlying resource doesn't exist anymore or you don't have permission to view it.${webdav_auth ? "" : "<br />Have you tried <a href='/signin'>signing in</a>?"}<br /></h1>`;
+            }
+        });
+
+        const syncPromise = new Promise(resolve => {
+            document.addEventListener("sync", resolve);
+        });
+
+        const metadataPromise = new Promise(resolve => {
+            vid.onloadedmetadata = resolve;
+        });
+        
+        Promise.all([syncPromise, metadataPromise]).then(() => {
+            console.log("Loaded metadata");
+            switch (loop_setting) {
+                case "always":
+                    vid.loop = true;
+                    break;
+                case "loop":
+                    vid.loop = <%= tag_names.includes? "loop" %>;
+                    break;
+                case "short":
+                    if (vid.duration <= 61) {
+                        vid.loop = true;
+                    }
+                    break;
+                case "never":
+                    vid.loop = false;
+                    break;
+                default:
+                    break;
+            }
+
+            let default_volume = Number(localStorage.getItem("volume") ?? "0.2"); 
+            vid.volume = default_volume / 100;
+
+            vid.onvolumechange = () => {
+                if (should_remember_volume === "remember") {
+                    localStorage.setItem("volume", vid.volume * 100);
+                }
+            }
+
+            if (should_autoplay === "true") {
+                vid.muted = true;
+                vid.autoplay = true;
+                vid_overlay.classList.remove("d-none");
+
+                vid_overlay.addEventListener("click", (ev => {
+                    ev.preventDefault();
+                    vid.muted = false;
+                    vid_overlay.classList.add("d-none");
+                }), {once: true});
+
+                vid.play();
+            }
+        });
+    </script>
+    <% elsif post.type.includes? "image" %>
+    <img class="object-fit-contain h-100 w-100" src="<%= post.url %>" id="img">
+    <script>
+        const img = document.getElementById("img");
+        const container = document.getElementById("content");
+        const fake_container = document.getElementById("fake-content");
+
+        const isMobile = window.matchMedia("(any-hover:none)").matches;
+
+        var fullscreen = false;
+
+        function toggleFullscreen() {
+            if (fullscreen) {
+                container.classList.add("main-media");
+                container.classList.remove("position-fixed");
+                container.classList.remove("top-0");
+                container.classList.remove("start-0");
+                container.classList.remove("z-3");
+                container.classList.remove("w-100");
+                container.classList.remove("h-100");
+                container.classList.remove("p-0");
+                container.classList.remove("m-0");
+                container.classList.remove("bg-black");
+                container.classList.remove("bg-opacity-50");
+
+                fake_container.classList.add("d-none");
+                
+                if (isMobile) {
+                    document.exitFullscreen();
+                    screen.orientation.unlock();
+                }
+                
+                fullscreen = false;
+            } else {
+                container.classList.remove("main-media");
+                container.classList.add("position-fixed");
+                container.classList.add("top-0");
+                container.classList.add("start-0");
+                container.classList.add("z-3");
+                container.classList.add("w-100");
+                container.classList.add("h-100");
+                container.classList.add("p-0");
+                container.classList.add("m-0");
+                container.classList.add("bg-black");
+                container.classList.add("bg-opacity-50");
+
+                fake_container.classList.remove("d-none");
+
+                if (isMobile) {
+                    document.documentElement.requestFullscreen();
+                    if (img.width > img.height) {
+                        screen.orientation.lock("landscape");
+                    } else {
+                        screen.orientation.lock("portrait");
+                    }
+                }
+
+                fullscreen = true;
+            }
+        }
+
+        img.addEventListener("error", async ev => {
+            ev.preventDefault();
+            const webdav_auth = await cookieStore.get("webdav_auth");
+            document.getElementById("content").innerHTML = `<h1>It seems like the underlying resource doesn't exist anymore or you don't have permission to view it.${webdav_auth ? "" : "<br />Have you tried <a href='/signin'>signing in</a>?"}<br /></h1>`;
+        });
+
+        img.addEventListener("click", ev => {
+            ev.preventDefault();
+            toggleFullscreen();
+        });
+    </script>
+    <% else %>
+    <h1>Unknown media, sorry. :(</h1>
+    <% end %>
+</div>
