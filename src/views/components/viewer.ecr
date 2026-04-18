@@ -3,7 +3,29 @@
 <div class="container-fluid position-relative main-media" style="height: 80vh; max-width: 100%;" id="content">
     <% if post.type.includes? "video" %>
     <video class="object-fit-contain h-100 w-100" src="<%= post.url %>" controls id="vid" crossorigin="anonymous"></video>
-    <div id="vid-overlay" class="position-absolute top-0 start-0 w-100 h-100 d-none"></div>
+    <div id="vid-overlay" class="position-absolute top-0 start-0 w-100 h-100 d-none">
+        <style>
+            .fade-out {
+                animation: fade-out 5s linear both;
+            }
+            @keyframes fade-out {
+                0% {
+                    opacity: 0.5;
+                }
+                80% {
+                    opacity: 0.5;
+                }
+                100% {
+                    opacity: 0;
+                }
+            }
+        </style>
+        <div class="position-absolute top-0 end-0 m-2 p-2 alert alert-dark d-flex align-items-center justify-content-center fs-4 text-center fade-out">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-volume-mute-fill" viewBox="0 0 16 16">
+                <path d="M6.717 3.55A.5.5 0 0 1 7 4v8a.5.5 0 0 1-.812.39L3.825 10.5H1.5A.5.5 0 0 1 1 10V6a.5.5 0 0 1 .5-.5h2.325l2.363-1.89a.5.5 0 0 1 .529-.06m7.137 2.096a.5.5 0 0 1 0 .708L12.207 8l1.647 1.646a.5.5 0 0 1-.708.708L11.5 8.707l-1.646 1.647a.5.5 0 0 1-.708-.708L10.793 8 9.146 6.354a.5.5 0 1 1 .708-.708L11.5 7.293l1.646-1.647a.5.5 0 0 1 .708 0"/>
+            </svg>
+        </div>
+    </div>
     <script type="module">
         const loop_setting = window.localStorage.getItem("loop") || "loop";
         const should_remember_volume = window.localStorage.getItem("volume_mode") || "remember";
@@ -68,7 +90,16 @@
             if (should_autoplay === "true") {
                 vid.muted = true;
                 vid.autoplay = true;
-                vid_overlay.classList.remove("d-none");
+
+                if ((typeof vid.mozHasAudio !== "undefined" && vid.mozHasAudio) || (typeof vid.audioTracks !== "undefined" && vid.audioTracks.length > 0)) {
+                    vid_overlay.classList.remove("d-none");
+                }
+
+                vid.addEventListener("loadeddata", () => {
+                    if (typeof vid.webkitAudioDecodedByteCount !== "undefined" && vid.webkitAudioDecodedByteCount > 0) {
+                        vid_overlay.classList.remove("d-none");
+                    }
+                });
 
                 vid_overlay.addEventListener("click", (ev => {
                     ev.preventDefault();
