@@ -20,12 +20,12 @@
     function handleGesture() {
         if (touchendX < touchstartX - 50 && Math.abs(touchendY - touchstartY) < 50) {
             if (<%= next_post_index < album_posts.size %>) {
-                window.location.href = "/post/<%= next_post.id if next_post %>?album=<%= album.id %>";
+                window.location.href = "/post/<%= next_post.id if next_post %>?album=<%= album.id %>" + (window.isFullscreen ? "&fullscreen=true" : "");
             }
         }
         if (touchendX > touchstartX + 50 && Math.abs(touchendY - touchstartY) < 50) {
             if (<%= previous_post_index >= 0 %>) {
-                window.location.href = "/post/<%= previous_post.id if previous_post %>?album=<%= album.id %>";
+                window.location.href = "/post/<%= previous_post.id if previous_post %>?album=<%= album.id %>" + (window.isFullscreen ? "&fullscreen=true" : "");
             }
         }
     }
@@ -60,10 +60,10 @@
 
     document.addEventListener("keydown", (e) => {
         if (e.key === "ArrowLeft" && <%= previous_post_index >= 0 %>) {
-            window.location.href = "/post/<%= previous_post.id if previous_post %>?album=<%= album.id %>";
+            window.location.href = "/post/<%= previous_post.id if previous_post %>?album=<%= album.id %>" + (window.isFullscreen ? "&fullscreen=true" : "");
         }
         if (e.key === "ArrowRight" && <%= next_post_index < album_posts.size %>) {
-            window.location.href = "/post/<%= next_post.id if next_post %>?album=<%= album.id %>";
+            window.location.href = "/post/<%= next_post.id if next_post %>?album=<%= album.id %>" + (window.isFullscreen ? "&fullscreen=true" : "");
         }
     });
 </script>

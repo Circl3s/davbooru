@@ -120,10 +120,26 @@
 
         const isMobile = window.matchMedia("(any-hover:none)").matches;
 
-        var fullscreen = false;
+        window.isFullscreen = <%= (env.params.query["fullscreen"]? || "false") == "true" %>;
+
+        if (window.isFullscreen) {
+            container.classList.remove("main-media");
+            container.classList.add("position-fixed");
+            container.classList.add("top-0");
+            container.classList.add("start-0");
+            container.classList.add("z-3");
+            container.classList.add("w-100");
+            container.classList.add("h-100");
+            container.classList.add("p-0");
+            container.classList.add("m-0");
+            container.classList.add("bg-black");
+            container.classList.add("bg-opacity-50");
+
+            fake_container.classList.remove("d-none");
+        }
 
         function toggleFullscreen() {
-            if (fullscreen) {
+            if (window.isFullscreen) {
                 container.classList.add("main-media");
                 container.classList.remove("position-fixed");
                 container.classList.remove("top-0");
@@ -143,7 +159,7 @@
                     screen.orientation.unlock();
                 }
                 
-                fullscreen = false;
+                window.isFullscreen = false;
             } else {
                 container.classList.remove("main-media");
                 container.classList.add("position-fixed");
@@ -168,7 +184,7 @@
                     }
                 }
 
-                fullscreen = true;
+                window.isFullscreen = true;
             }
         }
 
