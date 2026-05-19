@@ -61,6 +61,17 @@
                     <span class="input-group-text">%</span>
                 </div>
             </div>
+            <div class="mb-3">
+                <label for="blacklist" class="form-label">Blacklist</label>
+                <div class="position-relative overflow-visible">
+                    <textarea name="blacklist" class="form-control" id="blacklist" rows="3"></textarea>
+                    <% search_id = "blacklist" %>
+                    <%= render "./src/views/components/suggestions.ecr" %>
+                </div>
+                <div class="form-text">
+                    Tags to hide from search results. Pseudo-tags like "path:" and "album:" are also supported. Each tag should be separated by a space.
+                </div>
+            </div>
             <div class="row justify-content-around">
                 <div class="col-6">
                     <button type="button" class="btn btn-success d-flex align-items-center justify-content-center" id="save_settings">
@@ -97,6 +108,7 @@
     const loop_element = document.querySelector("#loop");
     const volume_mode_element = document.querySelector("#volume_mode");
     const volume_element = document.querySelector("#volume");
+    const blacklist_element = document.querySelector("#blacklist");
     const save_settings_element = document.querySelector("#save_settings");
     const sync_settings_element = document.querySelector("#sync_settings");
     const sync_up_warning_element = document.querySelector("#sync_up_warning");
@@ -111,7 +123,8 @@
         autoplay: window.localStorage.getItem("autoplay") || "false",
         loop: window.localStorage.getItem("loop") || "loop",
         volume_mode: window.localStorage.getItem("volume_mode") || "remember",
-        volume: window.localStorage.getItem("volume") || "100"
+        volume: window.localStorage.getItem("volume") || "100",
+        blacklist: window.localStorage.getItem("blacklist") || ""
     };
 
     sync_element.checked = settings.sync === "true";
@@ -121,6 +134,7 @@
     loop_element.value = settings.loop;
     volume_mode_element.value = settings.volume_mode;
     volume_element.value = settings.volume;
+    blacklist_element.value = settings.blacklist;
 
     sync_url_element.disabled = !sync_element.checked;
     sync_settings_element.style.visibility = !sync_element.checked ? "hidden" : "visible";
@@ -151,7 +165,8 @@
             autoplay: autoplay_element.value,
             loop: loop_element.value,
             volume_mode: volume_mode_element.value,
-            volume: volume_element.value
+            volume: volume_element.value,
+            blacklist: blacklist_element.value
         };
 
         Object.entries(settings).forEach(([key, value]) => {
@@ -159,6 +174,7 @@
         });
 
         document.cookie = "theme=" + settings.theme;
+        document.cookie = "blacklist=" + encodeURIComponent(settings.blacklist);
 
         if (settings.sync) {
             const webdav_auth = await window.cookieStore.get("webdav-auth");
@@ -201,7 +217,8 @@
             autoplay: autoplay_element.value,
             loop: loop_element.value,
             volume_mode: volume_mode_element.value,
-            volume: volume_element.value
+            volume: volume_element.value,
+            blacklist: blacklist_element.value
         };
         fetch(settings.sync_url, {
             method: "GET",

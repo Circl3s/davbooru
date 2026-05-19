@@ -124,6 +124,12 @@ module Davbooru
     else
       env.set "theme", "dark"
     end
+
+    unless env.request.cookies["blacklist"]?.nil?
+      env.set "blacklist", URI.decode_www_form(env.request.cookies["blacklist"].value)
+    else
+      env.set "blacklist", ""
+    end
   end
 
   get "/sw.js" do |env|
@@ -147,9 +153,10 @@ module Davbooru
   get "/search" do |env|
     search_string = env.params.query["q"]
     search_param = URI.encode_www_form(search_string)
+    blacklist = env.get("blacklist").to_s
     page = env.params.query["p"].to_i64
     posts = [] of Post
-    qb = QueryBuilder.new(db, search_string)
+    qb = QueryBuilder.new(db, search_string, blacklist)
     db.query qb.sql, args: qb.path_filters do |rs|
       rs.each do
         posts << Post.from_row(rs, indexer)
@@ -159,6 +166,9 @@ module Davbooru
     site_title = "Search: #{search_string} | DAVbooru"
     if total_posts == 0
       message = "No posts found matching current criteria. :("
+      if !blacklist.blank?
+        message += "</br>Are you sure the results aren't <a href='/settings'>blacklisted</a>?"
+      end
       back_url = "/search?q=&p=0"
 
       render "src/views/error.ecr", "src/views/layout.ecr"
@@ -393,8 +403,9 @@ module Davbooru
     begin
       search_string = env.params.query["q"]
       search_param = URI.encode_www_form(search_string)
+      blacklist = env.get("blacklist").to_s
       posts = [] of Post
-      qb = QueryBuilder.new(db, search_string)
+      qb = QueryBuilder.new(db, search_string, blacklist)
       db.query qb.sql, args: qb.path_filters do |rs|
         rs.each do
           posts << Post.from_row(rs, indexer)
@@ -402,9 +413,13 @@ module Davbooru
       end
 
       if posts.empty?
-        message = "No posts found for query: #{search_string}"
         site_title = "Error | DAVbooru"
+        message = "No posts found matching current criteria. :("
+        if !blacklist.blank?
+          message += "</br>Are you sure the results aren't <a href='/settings'>blacklisted</a>?"
+        end
         back_url = "/search?q=&p=0"
+
         render "src/views/error.ecr", "src/views/layout.ecr"
       end
 
@@ -564,16 +579,17 @@ module Davbooru
   get "/albums" do |env|
     search_string = env.params.query["q"]? || ""
     page = (env.params.query["p"]? || "0").to_i64
+    blacklist = env.get("blacklist").to_s
 
     albums = [] of Album
     matching_posts = [] of Post
     first_posts = [] of Post?
 
-    qb = QueryBuilder.new(db, search_string)
+    qb = QueryBuilder.new(db, search_string, blacklist)
     sql = qb.sql
 
     unless qb.valid_tags.empty?
-      db.query sql do |rs|
+      db.query sql, args: qb.path_filters do |rs|
         rs.each do
           matching_posts << Post.from_row(rs, indexer)
         end
@@ -585,7 +601,7 @@ module Davbooru
         album = Album.from_row(rs)
         all_posts = album.posts(db, indexer)
         unless qb.valid_tags.empty?
-          should_include = all_posts.any? { |post| matching_posts.map(&.id).includes?(post.id) }
+          should_include = all_posts.any? { |post| matching_posts.map(&.id).includes?(post.id) } || all_posts.empty?
           albums << album if should_include
           first_posts << all_posts.first? if should_include
         else

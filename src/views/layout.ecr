@@ -78,6 +78,7 @@
             loop: "loop",
             volume_mode: "remember",
             volume: 1,
+            blacklist: ""
         }
     </script>
 </head>
@@ -178,9 +179,11 @@
                             if (data.volume_mode === "fixed") {
                                 window.localStorage.setItem("volume", data.volume);
                             }
+                            window.localStorage.setItem("blacklist", data.blacklist);
                             window.localStorage.setItem("favourites", data.favourites);
 
                             document.cookie = "theme=" + data.theme;
+                            document.cookie = "blacklist=" + data.blacklist;
                             document.documentElement.setAttribute("data-bs-theme", data.theme);
 
                             document.dispatchEvent(new CustomEvent("sync", {

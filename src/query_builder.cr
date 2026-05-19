@@ -19,6 +19,7 @@ class QueryBuilder
 
     @db : DB::Database
     getter text : String
+    @blacklist : String
     @sql : String = ""
     getter unknown_tags = [] of String
     getter valid_tags = [] of String
@@ -27,7 +28,7 @@ class QueryBuilder
 
     @@cache = [] of QueryBuilder
 
-    def initialize(@db, @text = "")
+    def initialize(@db, @text = "", @blacklist = "")
     end
 
     def text=(@text)
@@ -52,6 +53,13 @@ class QueryBuilder
         negative_selects = [] of String
 
         working_text = @text
+
+        if !@blacklist.blank?
+            blacklisted_tags = @blacklist.strip.scan(/[^\s"]+(?:"[^"\\]*(?:\\.[^"\\]*)*"[^\s"]*)*|"[^"\\]*(?:\\.[^"\\]*)*"/)
+            blacklisted_tags.each do |tag|
+                working_text += " -#{tag}"
+            end
+        end
 
         tag_names = working_text.strip.scan(/[^\s"]+(?:"[^"\\]*(?:\\.[^"\\]*)*"[^\s"]*)*|"[^"\\]*(?:\\.[^"\\]*)*"/)
         tag_names.each do |match|
@@ -109,7 +117,7 @@ class QueryBuilder
         UNION ALL
         SELECT tags.*
         FROM tags JOIN hierarchy_#{tag.id} ON tags.parent_id = hierarchy_#{tag.id}.id
-)"
+)" if !ctes.join(", ").includes?("hierarchy_#{tag.id}")
 
                     select_sql =
 "SELECT posts.*
