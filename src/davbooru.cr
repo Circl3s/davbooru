@@ -150,17 +150,9 @@ module Davbooru
     page = env.params.query["p"].to_i64
     posts = [] of Post
     qb = QueryBuilder.new(db, search_string)
-    if qb.path_filter
-      db.query qb.sql, "%#{qb.path_filter}%" do |rs|
-        rs.each do
-          posts << Post.from_row(rs, indexer)
-        end
-      end
-    else
-      db.query qb.sql do |rs|
-        rs.each do
-          posts << Post.from_row(rs, indexer)
-        end
+    db.query qb.sql, args: qb.path_filters do |rs|
+      rs.each do
+        posts << Post.from_row(rs, indexer)
       end
     end
     total_posts = posts.size
@@ -403,17 +395,9 @@ module Davbooru
       search_param = URI.encode_www_form(search_string)
       posts = [] of Post
       qb = QueryBuilder.new(db, search_string)
-      if qb.path_filter
-        db.query qb.sql, "%#{qb.path_filter}%" do |rs|
-          rs.each do
-            posts << Post.from_row(rs, indexer)
-          end
-        end
-      else
-        db.query qb.sql do |rs|
-          rs.each do
-            posts << Post.from_row(rs, indexer)
-          end
+      db.query qb.sql, args: qb.path_filters do |rs|
+        rs.each do
+          posts << Post.from_row(rs, indexer)
         end
       end
 
