@@ -156,7 +156,7 @@ module Davbooru
     # Trigger likely already exists
   end
   begin
-    db.exec "CREATE TRIGGER IF NOT EXISTS update_posts_updated_at_after_update_post AFTER UPDATE ON posts FOR EACH ROW BEGIN UPDATE posts SET updated_at = unixepoch('now') WHERE id = NEW.id; END;"
+    db.exec "CREATE TRIGGER IF NOT EXISTS update_posts_updated_at_after_update_post AFTER UPDATE ON posts FOR EACH ROW BEGIN UPDATE posts SET updated_at = unixepoch('now') WHERE id = NEW.id AND ((OLD.id IS NOT NEW.id) OR (OLD.url IS NOT NEW.url) OR (OLD.kudos IS NOT NEW.kudos) OR (OLD.etag IS NOT NEW.etag)); END;"
   rescue
     # Trigger likely already exists
   end
