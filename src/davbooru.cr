@@ -114,6 +114,83 @@ module Davbooru
     puts "Error creating album_posts table: #{e}"
   end
 
+  # Migration: Add timestamps to posts and albums
+  begin
+    db.exec "ALTER TABLE posts ADD COLUMN created_at INTEGER DEFAULT 0"
+  rescue
+    # Column likely already exists
+  end
+  begin
+    db.exec "ALTER TABLE posts ADD COLUMN updated_at INTEGER DEFAULT 0"
+  rescue
+    # Column likely already exists
+  end
+  begin
+    db.exec "ALTER TABLE albums ADD COLUMN created_at INTEGER DEFAULT 0"
+  rescue
+    # Column likely already exists
+  end
+  begin
+    db.exec "ALTER TABLE albums ADD COLUMN updated_at INTEGER DEFAULT 0"
+  rescue
+    # Column likely already exists
+  end
+  begin
+    db.exec "CREATE TRIGGER IF NOT EXISTS update_posts_created_at_after_insert_post AFTER INSERT ON posts BEGIN UPDATE posts SET created_at = unixepoch('now'), updated_at = unixepoch('now') WHERE id = NEW.id; END;"
+  rescue
+    # Trigger likely already exists
+  end
+  begin
+    db.exec "CREATE TRIGGER IF NOT EXISTS update_albums_created_at_after_insert_album AFTER INSERT ON albums BEGIN UPDATE albums SET created_at = unixepoch('now'), updated_at = unixepoch('now') WHERE id = NEW.id; END;"
+  rescue
+    # Trigger likely already exists
+  end
+  begin
+    db.exec "CREATE TRIGGER IF NOT EXISTS update_posts_updated_at_after_insert_post_tag AFTER INSERT ON post_tags FOR EACH ROW BEGIN UPDATE posts SET updated_at = unixepoch('now') WHERE id = NEW.post_id; END;"
+  rescue
+    # Trigger likely already exists
+  end
+  begin
+    db.exec "CREATE TRIGGER IF NOT EXISTS update_posts_updated_at_after_delete_post_tag AFTER DELETE ON post_tags FOR EACH ROW BEGIN UPDATE posts SET updated_at = unixepoch('now') WHERE id = OLD.post_id; END;"
+  rescue
+    # Trigger likely already exists
+  end
+  begin
+    db.exec "CREATE TRIGGER IF NOT EXISTS update_posts_updated_at_after_update_post AFTER UPDATE ON posts FOR EACH ROW BEGIN UPDATE posts SET updated_at = unixepoch('now') WHERE id = NEW.id; END;"
+  rescue
+    # Trigger likely already exists
+  end
+  begin
+    db.exec "CREATE TRIGGER IF NOT EXISTS update_posts_updated_at_after_insert_album_post AFTER INSERT ON album_posts FOR EACH ROW BEGIN UPDATE posts SET updated_at = unixepoch('now') WHERE id = NEW.post_id; END;"
+  rescue
+    # Trigger likely already exists
+  end
+  begin
+    db.exec "CREATE TRIGGER IF NOT EXISTS update_posts_updated_at_after_delete_album_post AFTER DELETE ON album_posts FOR EACH ROW BEGIN UPDATE posts SET updated_at = unixepoch('now') WHERE id = OLD.post_id; END;"
+  rescue
+    # Trigger likely already exists
+  end
+  begin
+    db.exec "CREATE TRIGGER IF NOT EXISTS update_albums_updated_at_after_insert_album_post AFTER INSERT ON album_posts FOR EACH ROW BEGIN UPDATE albums SET updated_at = unixepoch('now') WHERE id = NEW.album_id; END;"
+  rescue
+    # Trigger likely already exists
+  end
+  begin
+    db.exec "CREATE TRIGGER IF NOT EXISTS update_albums_updated_at_after_delete_album_post AFTER DELETE ON album_posts FOR EACH ROW BEGIN UPDATE albums SET updated_at = unixepoch('now') WHERE id = OLD.album_id; END;"
+  rescue
+    # Trigger likely already exists
+  end
+  begin
+    db.exec "CREATE TRIGGER IF NOT EXISTS update_albums_updated_at_after_update_post_order AFTER UPDATE ON album_posts FOR EACH ROW BEGIN UPDATE albums SET updated_at = unixepoch('now') WHERE id = NEW.album_id; END;"
+  rescue
+    # Trigger likely already exists
+  end
+  begin
+    db.exec "CREATE TRIGGER IF NOT EXISTS update_albums_updated_at_after_update_album AFTER UPDATE ON albums FOR EACH ROW BEGIN UPDATE albums SET updated_at = unixepoch('now') WHERE id = NEW.id; END;"
+  rescue
+    # Trigger likely already exists
+  end
+
   indexer = Indexer.new(db, base_url, username, password)
 
   Kemal::Session.config.secret = ":)"
@@ -802,9 +879,10 @@ module Davbooru
   # *
 
   get "/api/suggest" do |env|
+    #! TODO: Better handling of pseudo-tags
     env.response.headers["Content-Type"] = "application/json"
 
-    query = env.params.query["q"]? || ""
+    query = (env.params.query["q"]? || "").downcase.strip
     nopseudo = (env.params.query["nopseudo"]? || "") === "1"
     tags = [] of Tag
 
@@ -826,6 +904,18 @@ module Davbooru
             tags << Tag.pseudo("sort:#{key}")
           end
         end
+      end
+      tags.to_json
+    end
+
+    if ((query.matches? /^(created|updated|uploaded|modified):/) && !nopseudo)
+      tag = query.split(":")[0] + ":"
+      filter = query.sub(tag, "")
+      if filter.matches? /^(before|after|on):/
+        operator = (filter.match(/^(before|after|on):/) || [""])[0]
+        tags.concat [Tag.pseudo(tag + operator + "YYYY-MM-DD"), Tag.pseudo(tag + operator + "today"), Tag.pseudo(tag + operator + "yesterday")] 
+      else
+        tags.concat [Tag.pseudo(tag + "before:"), Tag.pseudo(tag + "after:"), Tag.pseudo(tag + "on:")]
       end
       tags.to_json
     end

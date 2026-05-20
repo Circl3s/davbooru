@@ -5,6 +5,16 @@ class QueryBuilder
         "id"         => "id DESC",
         "id:desc"    => "id DESC",
         "id:asc"     => "id ASC",
+        "newest"     => "id DESC",
+        "oldest"     => "id ASC",
+
+        "updated"    => "updated_at DESC",
+        "updated:desc" => "updated_at DESC",
+        "updated:asc"  => "updated_at ASC",
+        "modified"    => "updated_at DESC",
+        "modified:desc" => "updated_at DESC",
+        "modified:asc"  => "updated_at ASC",
+
         "kudos"      => "kudos DESC",
         "kudos:desc" => "kudos DESC",
         "kudos:asc"  => "kudos ASC",
@@ -14,6 +24,7 @@ class QueryBuilder
         "score"      => "kudos DESC",
         "score:desc" => "kudos DESC",
         "score:asc"  => "kudos ASC",
+
         "random"     => "RANDOM()",
     }
 
@@ -80,6 +91,7 @@ class QueryBuilder
             if negative
                 name = name.lstrip("-")
             end
+
             if name.starts_with?("path:")
                 path = name[5..].strip('"')
                 select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE url LIKE ? GROUP BY posts.id"
@@ -89,6 +101,58 @@ class QueryBuilder
                 begin
                     album_id = name.split(":")[1].to_i64
                     select_sql = "SELECT posts.* FROM posts JOIN album_posts ON posts.id = album_posts.post_id WHERE album_posts.album_id = #{album_id} GROUP BY posts.id"
+                    @valid_tags << name
+                rescue
+                    @unknown_tags << name
+                    next
+                end
+            elsif name.starts_with?("updated:") || name.starts_with?("modified:")
+                begin
+                    filter = name.sub("updated:", "").sub("modified:", "")
+                    time_string = filter.sub("before:", "").sub("after:", "").sub("on:", "").strip("\"")
+                    if time_string.downcase == "today"
+                        time = Time.utc.at_beginning_of_day.to_unix
+                    elsif time_string.downcase == "yesterday"
+                        time = (Time.utc - 1.day).at_beginning_of_day.to_unix
+                    else
+                        time = Time::Format::ISO_8601_DATE.parse(time_string).to_unix
+                    end
+                    if filter.starts_with?("before:")
+                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.updated_at < #{time} GROUP BY posts.id"
+                    elsif filter.starts_with?("after:")
+                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.updated_at > #{time + 86399} GROUP BY posts.id"
+                    elsif filter.starts_with?("on:")
+                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.updated_at BETWEEN #{time} AND #{time + 86400} GROUP BY posts.id"
+                    else
+                        @unknown_tags << name
+                        next
+                    end
+                    @valid_tags << name
+                rescue
+                    @unknown_tags << name
+                    next
+                end
+            elsif name.starts_with?("created:") || name.starts_with?("uploaded:")
+                begin
+                    filter = name.sub("created:", "").sub("uploaded:", "")
+                    time_string = filter.sub("before:", "").sub("after:", "").sub("on:", "").strip("\"")
+                    if time_string.downcase == "today"
+                        time = Time.utc.at_beginning_of_day.to_unix
+                    elsif time_string.downcase == "yesterday"
+                        time = (Time.utc - 1.day).at_beginning_of_day.to_unix
+                    else
+                        time = Time::Format::ISO_8601_DATE.parse(time_string).to_unix
+                    end
+                    if filter.starts_with?("before:")
+                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.created_at < #{time} GROUP BY posts.id"
+                    elsif filter.starts_with?("after:")
+                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.created_at > #{time + 86399} GROUP BY posts.id"
+                    elsif filter.starts_with?("on:")
+                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.created_at BETWEEN #{time} AND #{time + 86400} GROUP BY posts.id"
+                    else
+                        @unknown_tags << name
+                        next
+                    end
                     @valid_tags << name
                 rescue
                     @unknown_tags << name

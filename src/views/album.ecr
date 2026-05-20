@@ -14,6 +14,12 @@
         <div class="card">
             <div class="card-body">
                 <h1 class="card-title"><%= album.name %></h1>
+                <p class="text-secondary fst-italic">
+                    <small>
+                        Created: <%= album.created_at.to_unix == 0 ? "Long ago..." : album.created_at %> | 
+                        Last modified: <%= album.updated_at.to_unix == 0 ? "Long ago..." : album.updated_at %>
+                    </small>
+                </p>
                 <p class="card-text"><%= album.description %></p>
                 <div class="row justify-content-start">
                     <div class="col-auto">
@@ -31,7 +37,7 @@
     <div class="col-12">
         <div class="row g-2 justify-content-between align-items-center">
             <div class="col-auto d-flex">
-                <h2>Posts</h2>
+                <h2><%= posts.size %> post<%= posts.size == 1 ? "" : "s" %></h2>
                 <form class="d-flex align-items-center" id="add-post-form" action="/album/<%= album.id %>/add" method="post">
                     <input class="form-control mx-2" id="post_id" type="text" name="post_id" placeholder="Enter Post ID or URL" required autocomplete="off">
                     <button type="submit" class="btn btn-outline-primary">Add</button>

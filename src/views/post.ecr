@@ -87,6 +87,12 @@
             </button>
             <button class="col-6 btn btn-danger w-auto mb-2" data-bs-toggle="modal" data-bs-target="#delete-modal" id="delete">Delete Post</button>
         </div>
+        <p class="text-secondary fst-italic">
+            <small>
+                Uploaded: <%= post.created_at.to_unix == 0 ? "Long ago..." : post.created_at %> <br>
+                Last modified: <%= post.updated_at.to_unix == 0 ? "Long ago..." : post.updated_at %>
+            </small>
+        </p>
     </aside>
     <div class="col-md-10 order-first order-md-last">
         <%= render "./src/views/components/viewer.ecr" %>
