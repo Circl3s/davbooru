@@ -94,9 +94,9 @@ class QueryBuilder
 
             if name.starts_with?("path:")
                 path = name[5..].strip('"')
-                select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE url LIKE ? GROUP BY posts.id"
+                select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE url LIKE ? ESCAPE '\\' GROUP BY posts.id"
                 @valid_tags << name
-                @path_filters << "%#{URI.encode_path(path)}%"
+                @path_filters << "%#{URI.encode_path(path).gsub("%", "\\%").gsub("%28", "(").gsub("%29", ")")}%"
             elsif name.starts_with?("album:") || name.starts_with?("pool:")
                 begin
                     album_id = name.split(":")[1].to_i64
