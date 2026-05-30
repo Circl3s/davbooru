@@ -14,11 +14,11 @@ shards:
 
   kemal:
     git: https://github.com/kemalcr/kemal.git
-    version: 1.8.0
+    version: 1.11.0
 
   kemal-basic-auth:
     git: https://github.com/kemalcr/kemal-basic-auth.git
-    version: 1.0.0
+    version: 2.0.0
 
   kemal-flash:
     git: https://github.com/crystal-china/kemal-flash.git
@@ -26,7 +26,7 @@ shards:
 
   kemal-session:
     git: https://github.com/kemalcr/kemal-session.git
-    version: 1.3.0
+    version: 1.5.0
 
   radix:
     git: https://github.com/luislavena/radix.git
@@ -34,5 +34,5 @@ shards:
 
   sqlite3:
     git: https://github.com/crystal-lang/crystal-sqlite3.git
-    version: 0.22.0
+    version: 0.23.0
 

@@ -174,7 +174,7 @@ class Indexer
                                                     end
                                                 else
                                                     # Duplicate or New File
-                                                    t.connection.exec "INSERT OR IGNORE INTO posts VALUES(NULL, ?, 0, ?)", url.to_s, current_etag
+                                                    t.connection.exec "INSERT OR IGNORE INTO posts VALUES(NULL, ?, 0, ?, 0, 0)", url.to_s, current_etag
                                                 end
                                             end
                                         end

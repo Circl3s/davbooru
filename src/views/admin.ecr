@@ -4,13 +4,76 @@
     </div>
     <div class="col-12">
         <button class="btn btn-primary" id="force-index">Force Indexing</button>
+        <button class="btn btn-primary" id="manage-taggers" data-bs-toggle="modal" data-bs-target="#tagger-modal">Auto-tagging rules</button>
     </div>
 </main>
+<div class="modal fade" id="tagger-modal" tabindex="-1" aria-labelledby="tagger-modal-label" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-fullscreen-md-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="tagger-modal-label">Manage auto-tagging rules</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-primary" role="alert">
+                    You can add new rules via the <a href="/tag">tag list</a>.
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">If path/name includes...</th>
+                                <th scope="col" colspan="2">...tag with:</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% taggers.each do |tagger| %>
+                            <% tag = tags.find! { |t| t.id == tagger.tag_id } %>
+                            <tr id="tagger-<%= tagger.id %>">
+                                <td class="text-secondary"><%= tagger.id %></td>
+                                <td><%= tagger.pattern.strip("%") %></td>
+                                <td class="fw-bold"><a style="color: <%= HTML.escape(tag.color) %>" href="/search?q=<%= URI.encode_www_form(tag.name) %>&p=0"><%= HTML.escape(tag.name) %></a></td>
+                                <td>
+                                    <button class="btn btn-outline-danger" onclick="delete_tagger(this, <%= tagger.id %>)">Delete</button>
+                                </td>
+                            </tr>
+                            <% end %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <script>
-    const button = document.getElementById("force-index");
-    button.addEventListener("click", () => {
-        button.disabled = true;
-        button.textContent = "Indexing...";
+    const index_button = document.getElementById("force-index");
+    
+    function delete_tagger(element, id) {
+        element.disabled = true;
+        element.textContent = "...";
+        fetch(`/api/tagger/${id}`, {
+            method: "DELETE",
+            credentials: "include"
+        }).then((res) => {
+            if (res.status == 204) {
+                document.getElementById(`tagger-${id}`).remove();
+            } else {
+                res.json().then((json) => {
+                    alert("Failed to delete rule: " + json.error);
+                });
+            }
+        }).catch((e) => {
+            alert("Failed to delete rule: " + e);
+        }).finally(() => {
+            element.disabled = false;
+            element.textContent = "Delete";
+        });
+    }
+    
+    index_button.addEventListener("click", () => {
+        index_button.disabled = true;
+        index_button.textContent = "Indexing...";
         fetch("/api/index", {
             method: "PUT",
             credentials: "include"
@@ -24,8 +87,9 @@
             }
         }).catch((e) => {
             alert("Failed to force indexing: " + e);
+        }).finally(() => {
+            index_button.disabled = false;
+            index_button.textContent = "Force Indexing";
         });
-        button.disabled = false;
-        button.textContent = "Force Indexing";
     });
 </script>

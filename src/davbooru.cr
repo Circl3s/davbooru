@@ -15,6 +15,7 @@ require "./models/post"
 require "./models/tag"
 require "./models/album"
 require "./models/wiki"
+require "./models/tagger"
 
 module Davbooru
   extend self
@@ -32,8 +33,9 @@ module Davbooru
 
   class ImportantAuthHandler < Kemal::BasicAuth::Handler
     only ["/tag/:id", "/settings/admin"]
-    only(["/tag/edit", "/post/:id/edit", "/post/:id/delete", "/tag/:id/mass_tag", "/tag/:id/mass_remove", "/albums/create", "/album/:id/delete", "/album/:id/add", "/album/:id/remove", "/album/:id/edit", "/album/:id/reorder"], method: "POST")
+    only(["/tag/edit", "/post/:id/edit", "/post/:id/delete", "/tag/:id/mass_tag", "/tag/:id/mass_remove", "/albums/create", "/album/:id/delete", "/album/:id/add", "/album/:id/remove", "/album/:id/edit", "/album/:id/reorder", "/api/tagger/new"], method: "POST")
     only(["/api/index"], method: "PUT")
+    only(["/api/tagger/:name"], method: "DELETE")
 
     def call(context)
       return call_next(context) unless only_match?(context)
@@ -112,6 +114,19 @@ module Davbooru
     db.exec "CREATE TABLE IF NOT EXISTS album_posts (album_id INTEGER NOT NULL, post_id INTEGER NOT NULL, \"order\" INTEGER NOT NULL, PRIMARY KEY (album_id, post_id), FOREIGN KEY (album_id) REFERENCES albums(id) ON DELETE CASCADE, FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE)"
   rescue e
     puts "Error creating album_posts table: #{e}"
+  end
+  
+  # Migration: Create autotaggers table and trigger
+  begin
+      db.exec "CREATE TABLE IF NOT EXISTS autotaggers (id INTEGER PRIMARY KEY AUTOINCREMENT, pattern TEXT NOT NULL, tag_id INTEGER NOT NULL, FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE)"
+  rescue e
+      puts "Error creating autotaggers table: #{e}"
+  end
+  
+  begin
+      db.exec "CREATE TRIGGER IF NOT EXISTS handle_autotaggers AFTER INSERT ON posts FOR EACH ROW BEGIN INSERT INTO post_tags SELECT DISTINCT NEW.id, tag_id FROM autotaggers WHERE NEW.url LIKE pattern; END;"
+  rescue
+      # Trigger likely already exists
   end
 
   # Migration: Add timestamps to posts and albums
@@ -585,6 +600,7 @@ module Davbooru
     tag_id = env.params.url["id"].to_i64
     predicate = URI.encode_path(env.params.body["predicate"])
     respect_tagme = (env.params.body["respect_tagme"]? || false) == "true"
+    create_autotagger = (env.params.body["create_autotagger"]? || false) == "true"
     posts = [] of Post
     affected = 0_i64
 
@@ -600,6 +616,12 @@ module Davbooru
           result = t.connection.exec "INSERT OR IGNORE INTO post_tags VALUES(?, ?)", post.id, tag_id
           affected += result.rows_affected
         end
+        
+        if create_autotagger
+            tagger = Tagger.create(predicate, tag_id)
+            t.connection.exec "INSERT OR IGNORE INTO autotaggers VALUES(NULL, ?, #{tag_id})", tagger.pattern
+        end
+        
         t.commit
       end
 
@@ -871,6 +893,24 @@ module Davbooru
 
   get "/settings/admin" do |env|
     site_title = "Admin | DAVbooru"
+    
+    taggers = [] of Tagger
+    tag_ids = [] of Int64
+    db.query "SELECT * FROM autotaggers" do |rs|
+        rs.each do
+            tagger = Tagger.from_row(rs)
+            taggers << tagger
+            tag_ids << tagger.tag_id
+        end
+    end
+    
+    tags = [] of Tag
+    db.query "SELECT tags.*, categories.name FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.id IN (#{tag_ids.join(",")}) ORDER BY category_id ASC, tags.id ASC" do |rs|
+      rs.each do
+        tags << Tag.from_row(rs)
+      end
+    end
+    
     render "src/views/admin.ecr", "src/views/layout.ecr"
   end
 
@@ -958,6 +998,62 @@ module Davbooru
 
     response
   end
+  
+  get "/api/tagger/list" do |env|
+      env.response.headers["Content-Type"] = "application/json"
+      
+      taggers = [] of Tagger
+      
+      db.query "SELECT * FROM autotaggers" do |rs|
+          rs.each do
+              taggers << Tagger.from_row(rs)
+          end
+      end
+      
+      taggers.to_json
+  end
+  
+  post "/api/tagger/new" do |env|
+      env.response.headers["Content-Type"] = "application/json"
+      
+      path = env.params.body["path"]? || ""
+      tag_id = (env.params.body["tag_id"]? || "0").to_i64
+      
+      tagger = Tagger.create(path, tag_id)
+      
+      response = ""
+      begin
+          db.exec "INSERT OR IGNORE INTO autotaggers VALUES (NULL, ?, #{tag_id})", tagger.pattern
+          
+          env.response.status_code = 204
+      rescue e
+          env.response.status_code = 500
+          response = {"error" => e.message}.to_json
+      end
+      
+      response
+  end
+  
+  delete "/api/tagger/:id" do |env|
+      env.response.headers["Content-Type"] = "application/json"
+      
+      id = env.params.url["id"]
+      
+      response = ""
+      begin
+          db.exec "DELETE FROM autotaggers WHERE id = ?", id.to_i64
+          env.response.status_code = 204
+      rescue e
+          env.response.status_code = 500
+          response = {"error" => e.message}.to_json
+      end
+      
+      response
+  end
+  
+  # *
+  # * MAIN LOOP
+  # *
 
   if only_index
     indexer.run

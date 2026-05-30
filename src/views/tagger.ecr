@@ -19,15 +19,36 @@
                     Only posts tagged with tagme
                 </label>
             </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" role="switch" type="checkbox" name="create_autotagger" value="true" id="autotagger-input">
+                <label class="form-check-label" for="autotagger-input">
+                    Automatically tag new matching posts
+                </label>
+            </div>
             <div class="row d-flex justify-content-center align-items-center">
                 <input type="submit" formaction="/tag/<%= tag.id %>/mass_tag" class="btn col-3 col-sm-auto m-2 btn-success" value="Tag!"></input>
-                <input type="submit" formaction="/tag/<%= tag.id %>/mass_remove" class="btn col-3 col-sm-auto m-2 btn-danger" value="Remove!"></input>
+                <input type="submit" formaction="/tag/<%= tag.id %>/mass_remove" class="btn col-3 col-sm-auto m-2 btn-danger" id="submit-remove" value="Remove!"></input>
             </div>
+            <p id="autotagger-info" class="text-info-emphasis" style="display: none;">This will create an auto-tagging rule. These can be managed from the <a href="/settings/admin">admin settings</a> panel.</p>
         </form>
     </div>
     <script>
+        const autotagger_checkbox = document.getElementById("autotagger-input");
+        const autotagger_info = document.getElementById("autotagger-info");
+        const submit_remove = document.getElementById("submit-remove");
+        
         document.getElementById("preview").onclick = () => {
             window.open(`/search?q=path:"${encodeURIComponent(document.getElementById("predicate-input").value)}"&p=0`, "_blank")
         };
+        
+        autotagger_checkbox.addEventListener("change", (ev) => {
+            if (ev.target.checked) {
+                submit_remove.style.display = "none";
+                autotagger_info.style.display = "block";
+            } else {
+                submit_remove.style.display = "block";
+                autotagger_info.style.display = "none";
+            }
+        });
     </script>
 </main>
