@@ -1011,6 +1011,11 @@ module Davbooru
       tags.to_json
     end
 
+    if (query.includes?("id:") && !query.includes?("before:") && !query.includes?("after:") && !nopseudo)
+      tags.concat [Tag.pseudo("id:before:"), Tag.pseudo("id:after:")]
+      tags.to_json
+    end
+
     abbr_query = query.each_char.map_with_index do |c, i|
       if i == query.size - 1
         "#{c}%"

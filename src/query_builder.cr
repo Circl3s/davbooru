@@ -158,6 +158,25 @@ class QueryBuilder
                     @unknown_tags << name
                     next
                 end
+            elsif name.starts_with?("id:")
+                begin
+                    filter = name.sub("id:", "")
+                    id = filter.sub("before:", "").sub("after:", "").sub("around:", "").to_i64
+                    if filter.starts_with?("before:")
+                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.id < #{id} GROUP BY posts.id"
+                    elsif filter.starts_with?("after:")
+                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.id > #{id} GROUP BY posts.id"
+                    
+                    # TODO: Implement "around"
+
+                    else
+                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.id = #{id} GROUP BY posts.id"
+                    end
+                    @valid_tags << name
+                rescue
+                    @unknown_tags << name
+                    next
+                end
             else
                 tag = Tag.cache.values.find { |t| t.name == name }
                 unless tag
