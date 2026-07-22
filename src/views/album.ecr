@@ -13,7 +13,7 @@
     <div class="col-12">
         <div class="card">
             <div class="card-body">
-                <h1 class="card-title"><%= album.name %></h1>
+                <h1 class="card-title"><%= album.name %> <span class="text-secondary">#<%= album.id %></span></h1>
                 <p class="text-secondary fst-italic">
                     <small>
                         Created: <%= album.created_at.to_unix == 0 ? "Long ago..." : album.created_at %> | 
@@ -21,13 +21,22 @@
                     </small>
                 </p>
                 <p class="card-text"><%= album.description %></p>
-                <div class="row justify-content-start">
+                <div class="row g-2 justify-content-start">
                     <div class="col-auto">
                         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#edit-modal">Edit</button>
                     </div>
                     <div class="col-auto">
                         <form action="/album/<%= album.id %>/delete" method="post" onsubmit="return confirm('Are you sure you want to delete this album?');">
                             <button type="submit" class="btn btn-danger">Delete</button>
+                        </form>
+                    </div>
+                    <div class="col-12 col-md-auto ms-auto">
+                        <form class="input-group" action="/album/<%= album.id %>/tag" method="post">
+                            <input class="form-control" name="tags" placeholder="Tag all posts with..." aria-label="Tag" id="tagger" autocomplete="off">
+                            <input type="hidden" name="post_ids" value="<%= posts.map { |post| post.id }.join(",") %>">
+                            <% search_id = "tagger" %>
+                            <%= render "./src/views/components/suggestions.ecr" %>
+                            <button type="submit" class="btn btn-outline-success">Tag all</button>
                         </form>
                     </div>
                 </div>
@@ -39,14 +48,16 @@
             <div class="col-auto d-flex">
                 <h2><%= posts.size %> post<%= posts.size == 1 ? "" : "s" %></h2>
                 <form class="d-flex align-items-center" id="add-post-form" action="/album/<%= album.id %>/add" method="post">
-                    <input class="form-control mx-2" id="post_id" type="text" name="post_id" placeholder="Enter Post ID or URL" required autocomplete="off">
-                    <button type="submit" class="btn btn-outline-primary">Add</button>
-                    <div class="mx-2 invalid-feedback text-nowrap">
-                        Please enter a valid Post ID or URL.
+                    <div class="input-group has-validation mx-2">
+                        <input class="form-control" id="post_id" type="text" name="post_id" placeholder="Enter Post ID or URL" required autocomplete="off">
+                        <button type="submit" class="btn btn-outline-success">Add</button>
+                        <div class="mx-2 invalid-feedback text-nowrap">
+                            Please enter a valid Post ID or URL.
+                        </div>
                     </div>
                 </form>
             </div>
-            <form class="col-auto d-flex" id="reorder-form" action="/album/<%= album.id %>/reorder" method="post">
+            <form class="col-auto ms-auto me-auto ms-md-0 me-md-0 d-flex" id="reorder-form" action="/album/<%= album.id %>/reorder" method="post">
                 <input type="hidden" name="post_ids" value="<%= posts.map { |post| post.id }.join(",") %>">
                 <button type="submit" class="btn btn-success">Save Order</button>
             </form>
@@ -141,6 +152,4 @@
             document.getElementById("post_id").classList.add("is-invalid");
         }
     })
-
-    
 </script>

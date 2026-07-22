@@ -33,7 +33,7 @@ module Davbooru
 
   class ImportantAuthHandler < Kemal::BasicAuth::Handler
     only ["/tag/:id", "/settings/admin"]
-    only(["/tag/edit", "/post/:id/edit", "/post/:id/delete", "/tag/:id/mass_tag", "/tag/:id/mass_remove", "/albums/create", "/album/:id/delete", "/album/:id/add", "/album/:id/remove", "/album/:id/edit", "/album/:id/reorder", "/api/tagger/new"], method: "POST")
+    only(["/tag/edit", "/post/:id/edit", "/post/:id/delete", "/tag/:id/mass_tag", "/tag/:id/mass_remove", "/albums/create", "/album/:id/delete", "/album/:id/add", "/album/:id/remove", "/album/:id/edit", "/album/:id/reorder", "/album/:id/tag", "/api/tagger/new"], method: "POST")
     only(["/api/index"], method: "PUT")
     only(["/api/tagger/:name"], method: "DELETE")
 
@@ -858,6 +858,57 @@ module Davbooru
         t.commit
       end
     end
+    env.redirect "/album/#{album_id}"
+  end
+
+  post "/album/:id/tag" do |env|
+    album_id = env.params.url["id"].to_i64
+    post_ids_string = env.params.body["post_ids"]
+    post_ids = post_ids_string.split(",")
+    tag_string = env.params.body["tags"]
+    tag_names = tag_string.strip.split(" ")
+    tag_ids = [] of Int64
+    invalid_tags = [] of String
+    tag_names.each do |name|
+      next if name.blank?
+      tag = Tag.cache.values.find { |t| t.name == name }
+      unless tag
+        db.query "SELECT tags.*, categories.name FROM tags JOIN categories ON tags.category_id = categories.id WHERE tags.name = ? LIMIT 1", name.strip do |rs|
+          rs.each do
+            tag = Tag.from_row(rs)
+          end
+        end
+      end
+
+      if tag.nil?
+        invalid_tags << name
+      else
+        tag_ids << tag.id
+      end
+    end
+
+    db.transaction do |t|
+      post_ids.each do |post|
+        tag_ids.each do |tag|
+          t.connection.exec "INSERT OR IGNORE INTO post_tags VALUES(?, ?)", post, tag
+        end
+      end
+
+      t.commit
+    end
+
+    unless invalid_tags.empty?
+      env.flash["toast-enabled"] = "true"
+      env.flash["toast-title"] = "Ignored unknown tags"
+      env.flash["toast-body"] = invalid_tags.join(", ")
+      env.flash["toast-type"] = "danger"
+    else
+      env.flash["toast-enabled"] = "true"
+      env.flash["toast-title"] = "Successfully tagged all posts"
+      env.flash["toast-body"] = "#{post_ids.size} posts affected."
+      env.flash["toast-type"] = "success"
+    end
+
     env.redirect "/album/#{album_id}"
   end
 
