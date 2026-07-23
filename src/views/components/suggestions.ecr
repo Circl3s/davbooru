@@ -44,11 +44,13 @@
             newValue += "-"
         }
         newValue += tag.name;
-        newValue += " ";
+        if (!tag.name.endsWith(":")) {
+            newValue += " ";
+        }
         newValue += text.substring(end, text.length);
         input.value = newValue;
         suggestBox.hidden = true;
-        input.setSelectionRange(begin + tag.name.length + 1 + (negative ? 1 : 0), begin + tag.name.length + 1 + (negative ? 1 : 0));
+        input.setSelectionRange(begin + tag.name.length + (tag.name.endsWith(":") ? 0 : 1) + (negative ? 1 : 0), begin + tag.name.length + 1 + (negative ? 1 : 0));
         input.focus();
         input.dispatchEvent(new Event("input", { "bubbles": true }));
     }

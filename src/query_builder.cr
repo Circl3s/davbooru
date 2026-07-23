@@ -7,6 +7,7 @@ class QueryBuilder
         "id:asc"     => "id ASC",
         "newest"     => "id DESC",
         "oldest"     => "id ASC",
+        "id:around:" => "distance ASC",
 
         "updated"    => "updated_at DESC",
         "updated:desc" => "updated_at DESC",
@@ -35,6 +36,7 @@ class QueryBuilder
     getter unknown_tags = [] of String
     getter valid_tags = [] of String
     property sorting : String = SORTING_TYPES["id"]
+    property around_id : Int64 = -1
     getter path_filters = [] of String
 
     @@cache = [] of QueryBuilder
@@ -79,7 +81,12 @@ class QueryBuilder
 
             if name.starts_with?("sort:")
                 begin
-                    @sorting = SORTING_TYPES[name[5..]]
+                    sorting_type = name[5..].strip
+                    if sorting_type.matches?(/id:around:\d*/)
+                        @around_id = sorting_type[10..].to_i64
+                        sorting_type = sorting_type[0..9]
+                    end
+                    @sorting = SORTING_TYPES[sorting_type]
                     @valid_tags << name
                 rescue e
                     puts e
@@ -94,13 +101,13 @@ class QueryBuilder
 
             if name.starts_with?("path:")
                 path = name[5..].strip('"')
-                select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE url LIKE ? ESCAPE '\\' GROUP BY posts.id"
+                select_sql = "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE url LIKE ? ESCAPE '\\' GROUP BY posts.id"
                 @valid_tags << name
                 @path_filters << "%#{URI.encode_path(path).gsub("%", "\\%").gsub("%28", "(").gsub("%29", ")")}%"
             elsif name.starts_with?("album:") || name.starts_with?("pool:")
                 begin
                     album_id = name.split(":")[1].to_i64
-                    select_sql = "SELECT posts.* FROM posts JOIN album_posts ON posts.id = album_posts.post_id WHERE album_posts.album_id = #{album_id} GROUP BY posts.id"
+                    select_sql = "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN album_posts ON posts.id = album_posts.post_id WHERE album_posts.album_id = #{album_id} GROUP BY posts.id"
                     @valid_tags << name
                 rescue
                     @unknown_tags << name
@@ -118,11 +125,11 @@ class QueryBuilder
                         time = Time::Format::ISO_8601_DATE.parse(time_string).to_unix
                     end
                     if filter.starts_with?("before:")
-                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.updated_at < #{time} GROUP BY posts.id"
+                        select_sql = "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.updated_at < #{time} GROUP BY posts.id"
                     elsif filter.starts_with?("after:")
-                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.updated_at > #{time + 86399} GROUP BY posts.id"
+                        select_sql = "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.updated_at > #{time + 86399} GROUP BY posts.id"
                     elsif filter.starts_with?("on:")
-                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.updated_at BETWEEN #{time} AND #{time + 86400} GROUP BY posts.id"
+                        select_sql = "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.updated_at BETWEEN #{time} AND #{time + 86400} GROUP BY posts.id"
                     else
                         @unknown_tags << name
                         next
@@ -144,11 +151,11 @@ class QueryBuilder
                         time = Time::Format::ISO_8601_DATE.parse(time_string).to_unix
                     end
                     if filter.starts_with?("before:")
-                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.created_at < #{time} GROUP BY posts.id"
+                        select_sql = "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.created_at < #{time} GROUP BY posts.id"
                     elsif filter.starts_with?("after:")
-                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.created_at > #{time + 86399} GROUP BY posts.id"
+                        select_sql = "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.created_at > #{time + 86399} GROUP BY posts.id"
                     elsif filter.starts_with?("on:")
-                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.created_at BETWEEN #{time} AND #{time + 86400} GROUP BY posts.id"
+                        select_sql = "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.created_at BETWEEN #{time} AND #{time + 86400} GROUP BY posts.id"
                     else
                         @unknown_tags << name
                         next
@@ -163,14 +170,14 @@ class QueryBuilder
                     filter = name.sub("id:", "")
                     id = filter.sub("before:", "").sub("after:", "").sub("around:", "").to_i64
                     if filter.starts_with?("before:")
-                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.id < #{id} GROUP BY posts.id"
+                        select_sql = "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.id < #{id} GROUP BY posts.id"
                     elsif filter.starts_with?("after:")
-                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.id > #{id} GROUP BY posts.id"
+                        select_sql = "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.id > #{id} GROUP BY posts.id"
                     
                     # TODO: Implement "around"
 
                     else
-                        select_sql = "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.id = #{id} GROUP BY posts.id"
+                        select_sql = "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.id = #{id} GROUP BY posts.id"
                     end
                     @valid_tags << name
                 rescue
@@ -203,7 +210,7 @@ class QueryBuilder
 )" if !ctes.join(", ").includes?("hierarchy_#{tag.id}")
 
                     select_sql =
-"SELECT posts.*
+"SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance
 FROM posts JOIN post_tags ON posts.id = post_tags.post_id JOIN hierarchy_#{tag.id} ON post_tags.tag_id = hierarchy_#{tag.id}.id
 GROUP BY posts.id"
                 end
@@ -217,10 +224,10 @@ GROUP BY posts.id"
         end
 
         if selects.empty?
-            selects << "SELECT posts.* FROM posts JOIN post_tags ON posts.id = post_tags.post_id GROUP BY posts.id"
+            selects << "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN post_tags ON posts.id = post_tags.post_id GROUP BY posts.id"
         end
 
-        @sql = "#{ctes.empty? ? "" : "WITH RECURSIVE "}#{ctes.join(", ")} SELECT * FROM (#{selects.join(" INTERSECT ")}#{negative_selects.empty? ? "" : " EXCEPT "}#{negative_selects.join(" EXCEPT ")})"
+        @sql = "#{ctes.empty? ? "" : "WITH RECURSIVE "}#{ctes.join(", ")} SELECT * FROM (#{selects.join(" INTERSECT ")}#{negative_selects.empty? ? "" : " EXCEPT "}#{negative_selects.join(" EXCEPT ")})".gsub("<PLACEHOLDER>", @around_id)
         @@cache << self
         return @sql + page_sql
     end
