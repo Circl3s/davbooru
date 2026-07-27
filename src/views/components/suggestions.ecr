@@ -95,6 +95,7 @@
     }
 
     input.addEventListener("keydown", (ev) => {
+        ev.stopPropagation();
         clearTimeout(timeout);
 
         let key = ev.key;

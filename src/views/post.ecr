@@ -213,11 +213,13 @@
         if (tag_edit.value.toLowerCase().includes(tag.textContent.toLowerCase())) {
             tag.classList.add("d-none");
         }
-        tag.addEventListener("click", () => {
-            tag_edit.value += " " + tag.textContent;
-            tag.classList.add("d-none");
-            tag_edit.dispatchEvent(new Event("input", { "bubbles": true }));
-        });
+        if (tag.id != popular_tags_end.id) {
+            tag.addEventListener("click", () => {
+                tag_edit.value += " " + tag.textContent;
+                tag.classList.add("d-none");
+                tag_edit.dispatchEvent(new Event("input", { "bubbles": true }));
+            });
+        }
     });
     if (Array.from(popular_tags.children).every(t => t === popular_tags_end || t.classList.contains("d-none"))) {
         popular_tags_end.classList.remove("d-none");
@@ -229,11 +231,13 @@
         if (tag_edit.value.toLowerCase().includes(tag.textContent.toLowerCase())) {
             tag.classList.add("d-none");
         }
-        tag.addEventListener("click", () => {
-            tag_edit.value += " " + tag.textContent;
-            tag.classList.add("d-none");
-            tag_edit.dispatchEvent(new Event("input", { "bubbles": true }));
-        });
+        if (tag.id != popular_path_tags_end.id) {
+            tag.addEventListener("click", () => {
+                tag_edit.value += " " + tag.textContent;
+                tag.classList.add("d-none");
+                tag_edit.dispatchEvent(new Event("input", { "bubbles": true }));
+            });
+        }
     });
     if (Array.from(popular_path_tags.children).every(t => t === popular_path_tags_end || t.classList.contains("d-none"))) {
         popular_path_tags_end.classList.remove("d-none");
