@@ -3,13 +3,17 @@
     <% next_post_index = current_post_index.not_nil! + 1 %>
     <% previous_post = album_posts[previous_post_index]? %>
     <% next_post = album_posts[next_post_index]? %>
-    <a href="/post/<%= previous_post.id if previous_post %>?album=<%= album.id %>" class="btn btn-sm btn-outline-info <%= previous_post_index < 0 ? "invisible" : "" %>" id="previous-post">Previous</a>
+    <link rel="prefetch" as="document" href="/post/<%= previous_post.id if previous_post %>?album=<%= album.id %>" />
+    <a id="prev-post-button" href="/post/<%= previous_post.id if previous_post %>?album=<%= album.id %>" class="btn btn-sm btn-outline-info <%= previous_post_index < 0 ? "invisible" : "" %>" id="previous-post">Previous</a>
     <p class="my-0 mx-2" id="album-info">You're viewing this post as part of <a href="/album/<%= album.id %>"><%= album.name %></a>. <small>(<%= current_post_index.not_nil! + 1 %> of <%= album_posts.size %>)</small></p>
-    <a href="/post/<%= next_post.id if next_post %>?album=<%= album.id %>" class="btn btn-sm btn-outline-info <%= next_post_index >= album_posts.size ? "invisible" : "" %>" id="next-post">Next</a>
+    <link rel="prefetch" as="document" href="/post/<%= next_post.id if next_post %>?album=<%= album.id %>" />
+    <a id="next-post-button" href="/post/<%= next_post.id if next_post %>?album=<%= album.id %>" class="btn btn-sm btn-outline-info <%= next_post_index >= album_posts.size ? "invisible" : "" %>" id="next-post">Next</a>
 </div>
 <script type="module">
     const album_navigation = document.getElementById("album-navigation");
     const content = document.getElementById("content");
+    const prev_button = document.getElementById("prev-post-button");
+    const next_button = document.getElementById("next-post-button");
 
     const isMobile = window.matchMedia("(any-hover:none)").matches;
     var touchstartX = 0
@@ -20,12 +24,12 @@
     function handleGesture() {
         if (touchendX < touchstartX - 50 && Math.abs(touchendY - touchstartY) < 50) {
             if (<%= next_post_index < album_posts.size %>) {
-                window.location.href = "/post/<%= next_post.id if next_post %>?album=<%= album.id %>" + (window.isFullscreen ? "&fullscreen=true" : "");
+                next_button.click();
             }
         }
         if (touchendX > touchstartX + 50 && Math.abs(touchendY - touchstartY) < 50) {
             if (<%= previous_post_index >= 0 %>) {
-                window.location.href = "/post/<%= previous_post.id if previous_post %>?album=<%= album.id %>" + (window.isFullscreen ? "&fullscreen=true" : "");
+                prev_button.click();
             }
         }
     }
@@ -60,10 +64,10 @@
 
     document.addEventListener("keydown", (e) => {
         if (e.key === "ArrowLeft" && <%= previous_post_index >= 0 %>) {
-            window.location.href = "/post/<%= previous_post.id if previous_post %>?album=<%= album.id %>" + (window.isFullscreen ? "&fullscreen=true" : "");
+            prev_button.click();
         }
         if (e.key === "ArrowRight" && <%= next_post_index < album_posts.size %>) {
-            window.location.href = "/post/<%= next_post.id if next_post %>?album=<%= album.id %>" + (window.isFullscreen ? "&fullscreen=true" : "");
+            next_button.click();
         }
     });
 </script>

@@ -153,11 +153,6 @@
                 container.classList.remove("bg-opacity-50");
 
                 fake_container.classList.add("d-none");
-
-                if (isMobile) {
-                    document.exitFullscreen();
-                    screen.orientation.unlock();
-                }
                 
                 window.isFullscreen = false;
             } else {
@@ -174,15 +169,6 @@
                 container.classList.add("bg-opacity-50");
 
                 fake_container.classList.remove("d-none");
-
-                if (isMobile) {
-                    document.documentElement.requestFullscreen();
-                    if (img.width > img.height) {
-                        screen.orientation.lock("landscape");
-                    } else {
-                        screen.orientation.lock("portrait");
-                    }
-                }
 
                 window.isFullscreen = true;
             }
