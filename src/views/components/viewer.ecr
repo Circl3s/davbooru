@@ -183,6 +183,7 @@
         img.addEventListener("click", ev => {
             ev.preventDefault();
             toggleFullscreen();
+            img.dispatchEvent(new CustomEvent("toggleFullscreen", {bubbles: true}));
         });
     </script>
     <% else %>

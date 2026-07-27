@@ -3,10 +3,10 @@
     <% next_post_index = current_post_index.not_nil! + 1 %>
     <% previous_post = album_posts[previous_post_index]? %>
     <% next_post = album_posts[next_post_index]? %>
-    <link rel="prefetch" as="document" href="/post/<%= previous_post.id if previous_post %>?album=<%= album.id %>" />
+    <link id="prev-post-prefetch" rel="prefetch" as="document" href="/post/<%= previous_post.id if previous_post %>?album=<%= album.id %>" />
     <a id="prev-post-button" href="/post/<%= previous_post.id if previous_post %>?album=<%= album.id %>" class="btn btn-sm btn-outline-info <%= previous_post_index < 0 ? "invisible" : "" %>" id="previous-post">Previous</a>
     <p class="my-0 mx-2" id="album-info">You're viewing this post as part of <a href="/album/<%= album.id %>"><%= album.name %></a>. <small>(<%= current_post_index.not_nil! + 1 %> of <%= album_posts.size %>)</small></p>
-    <link rel="prefetch" as="document" href="/post/<%= next_post.id if next_post %>?album=<%= album.id %>" />
+    <link id="next-post-prefetch" rel="prefetch" as="document" href="/post/<%= next_post.id if next_post %>?album=<%= album.id %>" />
     <a id="next-post-button" href="/post/<%= next_post.id if next_post %>?album=<%= album.id %>" class="btn btn-sm btn-outline-info <%= next_post_index >= album_posts.size ? "invisible" : "" %>" id="next-post">Next</a>
 </div>
 <script type="module">
@@ -14,6 +14,8 @@
     const content = document.getElementById("content");
     const prev_button = document.getElementById("prev-post-button");
     const next_button = document.getElementById("next-post-button");
+    const prev_prefetch = document.getElementById("prev-post-prefetch");
+    const next_prefetch = document.getElementById("next-post-prefetch");
 
     const isMobile = window.matchMedia("(any-hover:none)").matches;
     var touchstartX = 0
@@ -68,6 +70,27 @@
         }
         if (e.key === "ArrowRight" && <%= next_post_index < album_posts.size %>) {
             next_button.click();
+        }
+    });
+
+    if (window.isFullscreen) {
+        prev_button.href = prev_button.href + "&fullscreen=true";
+        prev_prefetch.href = prev_prefetch.href + "&fullscreen=true";
+        next_button.href = next_button.href + "&fullscreen=true";
+        next_prefetch.href = next_prefetch.href + "&fullscreen=true";
+    }
+
+    document.addEventListener("toggleFullscreen", ev => {
+        if (window.isFullscreen) {
+            prev_button.href = prev_button.href + "&fullscreen=true";
+            prev_prefetch.href = prev_prefetch.href + "&fullscreen=true";
+            next_button.href = next_button.href + "&fullscreen=true";
+            next_prefetch.href = next_prefetch.href + "&fullscreen=true";
+        } else {
+            prev_button.href = prev_button.href.replace("&fullscreen=true", "");
+            prev_prefetch.href = prev_prefetch.href.replace("&fullscreen=true", "");
+            next_button.href = next_button.href.replace("&fullscreen=true", "");
+            next_prefetch.href = next_prefetch.href.replace("&fullscreen=true", "");
         }
     });
 </script>
