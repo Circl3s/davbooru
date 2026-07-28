@@ -198,13 +198,13 @@ class QueryBuilder
                     @valid_tags << name
                     ctes <<
 "hierarchy_#{tag.id} AS (
-        SELECT *
-        FROM tags
-        WHERE id = #{tag.id}
-        UNION ALL
-        SELECT tags.*
-        FROM tags JOIN hierarchy_#{tag.id} ON tags.parent_id = hierarchy_#{tag.id}.id
-)" if !ctes.join(", ").includes?("hierarchy_#{tag.id}")
+    SELECT *
+    FROM tags
+    WHERE id = #{tag.id}
+    UNION ALL
+    SELECT tags.*
+    FROM tags JOIN hierarchy_#{tag.id} ON tags.parent_id = hierarchy_#{tag.id}.id
+)"
 
                     select_sql =
 "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance
@@ -224,7 +224,7 @@ GROUP BY posts.id"
             selects << "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN post_tags ON posts.id = post_tags.post_id GROUP BY posts.id"
         end
 
-        @sql = "#{ctes.empty? ? "" : "WITH RECURSIVE "}#{ctes.join(", ")} SELECT * FROM (#{selects.join(" INTERSECT ")}#{negative_selects.empty? ? "" : " EXCEPT "}#{negative_selects.join(" EXCEPT ")})".gsub("<PLACEHOLDER>", @around_id)
+        @sql = "#{ctes.empty? ? "" : "WITH RECURSIVE "}#{ctes.uniq.join(", ")} SELECT * FROM (#{selects.join(" INTERSECT ")}#{negative_selects.empty? ? "" : " EXCEPT "}#{negative_selects.join(" EXCEPT ")})".gsub("<PLACEHOLDER>", @around_id)
         @@cache << self
         return @sql + page_sql
     end
