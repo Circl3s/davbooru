@@ -173,9 +173,6 @@ class QueryBuilder
                         select_sql = "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.id < #{id} GROUP BY posts.id"
                     elsif filter.starts_with?("after:")
                         select_sql = "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.id > #{id} GROUP BY posts.id"
-                    
-                    # TODO: Implement "around"
-
                     else
                         select_sql = "SELECT posts.*, ABS(<PLACEHOLDER> - posts.id) AS distance FROM posts JOIN post_tags ON posts.id = post_tags.post_id WHERE posts.id = #{id} GROUP BY posts.id"
                     end
