@@ -1,6 +1,6 @@
-<main class="row m-4 justify-content-center d-flex">
-    <aside class="col-md-2 order-last order-md-first">
-        <button type="button" class="btn btn-success my-4" id="fav" disabled>Favourite</button>
+<main class="row m-2 justify-content-center d-flex">
+    <aside class="col-lg-2 order-last order-lg-first">
+        <button type="button" class="btn btn-success my-2 mt-4 mt-lg-2" id="fav" disabled>Favourite</button>
         <h3>Tags</h3>
         <% last_cat = "" %>
         <% tag_names = [] of String %>
@@ -16,13 +16,13 @@
         <% end %>
         </ul>
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#tags-modal" id="edit">Edit tags</button>
-        <div class="row align-items-center justify-content-between my-4">
-            <div class="col-6">
+        <div class="row align-items-center justify-content-between my-2 gy-2">
+            <div class="w-auto">
                 <h4 class="m-0"><%= nsfw ? "Cum counter:" : "Kudos:" %> <span id="kudos"><%= post.kudos %></span></h4>
             </div>
-            <div class="col-6 text-end">
+            <div class="w-auto">
                 <form action="/post/<%= post.id %>/kudos?q=<%= search_param %>&album=<%= album_id %>" method="POST">
-                    <input type="submit" class="btn btn-sm btn-outline-success" value="<%= nsfw ? "Cum" : "Send Kudos" %>"></input>
+                    <input type="submit" class="btn btn-sm btn-outline-success w-auto" value="<%= nsfw ? "Cum" : "Send Kudos" %>"></input>
                 </form>
             </div>
         </div>
@@ -94,11 +94,9 @@
             </small>
         </p>
     </aside>
-    <div class="col-md-10 order-first order-md-last">
+    <div class="col-lg-10 order-first order-lg-last">
         <%= render "./src/views/components/viewer.ecr" %>
-        <% unless album.nil? %>
-            <%= render "./src/views/components/album_navigation.ecr" %>
-        <% end %>
+        <%= render "./src/views/components/post_navigation.ecr" %>
         <% unless duplicates.empty? %>
         <div class="alert my-4 alert-warning" role="alert">
             Duplicate posts found: <% duplicates.each do |dup| %><a href="/post/<%= dup.id %>">#<%= dup.id %></a> <% end %>

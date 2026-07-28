@@ -1,6 +1,6 @@
-<div class="container-fluid position-relative main-media d-none" style="height: 80vh; max-width: 100%;" id="fake-content">
+<div class="position-relative main-media d-none" style="height: 80vh; max-width: 100%;" id="fake-content">
 </div>
-<div class="container-fluid position-relative main-media" style="height: 80vh; max-width: 100%;" id="content">
+<div class="position-relative main-media" style="height: 80vh; max-width: 100%;" id="content">
     <% if post.type.includes? "video" %>
     <video class="object-fit-contain h-100 w-100" src="<%= post.url %>" controls id="vid" crossorigin="anonymous"></video>
     <div id="vid-overlay" class="position-absolute top-0 start-0 w-100 h-100 d-none">

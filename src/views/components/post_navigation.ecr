@@ -1,0 +1,133 @@
+<% album_mode = !album_id.nil? %>
+<div id="navigation-parent" class="bg-body-tertiary w-100 mt-2 rounded">
+    <% unless !album_id.nil? && search_string.blank? %>
+    <div id="search-navigation" class="d-flex align-items-center justify-content-between p-2 <%= "fw-bold" unless album_mode %>">
+        <a class="btn btn-outline-secondary btn-sm" id="prev-search-button" href="/post/<%= post.id %>/prev?q=<%= search_string %>">&lt;&lt; Prev</a>
+        <a class="text-nowrap text-truncate text-reset text-center w-50" href="/search?q=<%= search_string %>">Search: <%= search_string.blank? ? "(blank)" : search_string %></a>
+        <a class="btn btn-outline-secondary btn-sm" id="next-search-button" href="/post/<%= post.id %>/next?q=<%= search_string %>">Next &gt;&gt;</a>
+    </div>
+    <% end %>
+    <% unless album.nil? %>
+    <div id="album-navigation" class="d-flex align-items-center justify-content-between p-2 <%= "fw-bold" if album_mode %>">
+        <% previous_post_index = current_post_index.not_nil! - 1 %>
+        <% next_post_index = current_post_index.not_nil! + 1 %>
+        <% previous_post = previous_post_index < 0 ? nil : album_posts[previous_post_index]? %>
+        <% next_post = album_posts[next_post_index]? %>
+        <a class="btn btn-outline-secondary btn-sm <%= "invisible" if previous_post.nil? %>" id="prev-album-button" href="<%= previous_post.nil? ? "#" : "/post/#{previous_post.id}?album=#{album.id}&q=#{search_string}" %>">&lt;&lt; Prev</a>
+        <a class="text-nowrap text-truncate text-reset text-center w-50" href="/album/<%= album.id %>">Album: <%= album.name %> <small>(<%= current_post_index.not_nil! + 1 %> of <%= album_posts.size %>)</small></a>
+        <a class="btn btn-outline-secondary btn-sm <%= "invisible" if next_post.nil? %>" id="next-album-button" href="<%= next_post.nil? ? "#" : "/post/#{next_post.id}?album=#{album.id}&q=#{search_string}" %>">Next &gt;&gt;</a>
+    </div>
+    <% end %>
+</div>
+
+<script type="module">
+    const navigation_parent = document.getElementById("navigation-parent");
+    const search_navigation = document.getElementById("search-navigation");
+    const album_navigation = document.getElementById("album-navigation");
+    const content = document.getElementById("content");
+    const prev_album = document.getElementById("prev-album-button");
+    const next_album = document.getElementById("next-album-button");
+    const prev_search = document.getElementById("prev-search-button");
+    const next_search = document.getElementById("next-search-button");
+
+    const search_params = new URLSearchParams(window.location.search);
+
+    let prev_button = prev_search;
+    let next_button = next_search;
+
+    if (search_params.has("album")) {
+        prev_button = prev_album;
+        next_button = next_album;
+    }
+
+    const isMobile = window.matchMedia("(any-hover:none)").matches;
+    var touchstartX = 0
+    var touchstartY = 0
+    var touchendX = 0
+    var touchendY = 0
+
+    function handleGesture() {
+        if (touchendX < touchstartX - 50 && Math.abs(touchendY - touchstartY) < 50) {
+            next_button.click();
+        }
+        if (touchendX > touchstartX + 50 && Math.abs(touchendY - touchstartY) < 50) {
+            prev_button.click();
+        }
+    }
+
+    navigation_parent.addEventListener("touchstart", (e) => {
+        touchstartX = e.changedTouches[0].screenX;
+        touchstartY = e.changedTouches[0].screenY;
+    });
+
+    content.addEventListener("touchstart", (e) => {
+        touchstartX = e.changedTouches[0].screenX;
+        touchstartY = e.changedTouches[0].screenY;
+    });
+
+    navigation_parent.addEventListener("touchend", (e) => {
+        touchendX = e.changedTouches[0].screenX;
+        touchendY = e.changedTouches[0].screenY;
+        handleGesture();
+    });
+
+    content.addEventListener("touchend", (e) => {
+        touchendX = e.changedTouches[0].screenX;
+        touchendY = e.changedTouches[0].screenY;
+        handleGesture();
+    });
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowLeft") {
+            prev_button.click();
+        }
+        if (e.key === "ArrowRight") {
+            next_button.click();
+        }
+    });
+
+    if (window.isFullscreen) {
+        if (prev_search) {
+            prev_search.href = prev_search?.href + "&fullscreen=true";
+        }
+        if (next_search) {
+            next_search.href = next_search?.href + "&fullscreen=true";
+        }
+        if (prev_album) {
+            prev_album.href = prev_album?.href + "&fullscreen=true";
+        }
+        if (next_album) {
+            next_album.href = next_album?.href + "&fullscreen=true";
+        }
+    }
+
+    document.addEventListener("toggleFullscreen", ev => {
+        if (window.isFullscreen) {
+            if (prev_search) {
+                prev_search.href = prev_search.href + "&fullscreen=true";
+            }
+            if (next_search) {
+                next_search.href = next_search.href + "&fullscreen=true";
+            }
+            if (prev_album) {
+                prev_album.href = prev_album.href + "&fullscreen=true";
+            }
+            if (next_album) {
+                next_album.href = next_album.href + "&fullscreen=true";
+            }
+        } else {
+            if (prev_search) {
+                prev_search.href = prev_search.href.replace("&fullscreen=true", "");
+            }
+            if (next_search) {
+                next_search.href = next_search.href.replace("&fullscreen=true", "");
+            }
+            if (prev_album) {
+                prev_album.href = prev_album.href.replace("&fullscreen=true", "");
+            }
+            if (next_album) {
+                next_album.href = next_album.href.replace("&fullscreen=true", "");
+            }
+        }
+    });
+</script>

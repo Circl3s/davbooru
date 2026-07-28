@@ -246,7 +246,7 @@ module Davbooru
     search_string = env.params.query["q"]
     search_param = URI.encode_www_form(search_string)
     blacklist = env.get("blacklist").to_s
-    page = env.params.query["p"].to_i64
+    page = (env.params.query["p"]? || "0").to_i64
     posts = [] of Post
     qb = QueryBuilder.new(db, search_string, blacklist)
     db.query qb.sql, args: qb.path_filters do |rs|
@@ -280,7 +280,8 @@ module Davbooru
   end
 
   get "/post/:id" do |env|
-    search_param = URI.encode_www_form(env.params.query["q"]? || "")
+    search_string = env.params.query["q"]? || ""
+    search_param = URI.encode_www_form(search_string)
     post = nil
     tags = [] of Tag
     relevant_tags = [] of String
@@ -364,6 +365,60 @@ module Davbooru
       env.set "desc", relevant_tags.join(", ")
       site_title = "Post ##{post.id} | DAVbooru"
       render "src/views/post.ecr", "src/views/layout.ecr"
+    end
+  end
+
+  get "/post/:id/next" do |env|
+    id = env.params.url["id"].to_i64
+    search_string = env.params.query["q"]? || ""
+    fullscreen = env.params.query["fullscreen"]? || ""
+    search_param = URI.encode_www_form(search_string)
+    blacklist = env.get("blacklist").to_s
+    posts = [] of Post
+    qb = QueryBuilder.new(db, search_string, blacklist)
+    db.query qb.sql, args: qb.path_filters do |rs|
+      rs.each do
+        posts << Post.from_row(rs, indexer)
+      end
+    end
+    total_posts = posts.size
+    post_placement = posts.index { |p| p.id == id }
+    if post_placement.nil?
+      message = "Something went wrong while locating the next post..."
+      site_title = "Error | DAVbooru"
+      back_url = "/post/#{id}?q=#{search_param}"
+      render "src/views/error.ecr", "src/views/layout.ecr"
+    else
+      next_post = posts[Math.min(post_placement + 1, total_posts - 1)]
+
+      env.redirect "/post/#{next_post.id}?q=#{search_string}#{"&fullscreen=true" unless fullscreen.blank?}"
+    end
+  end
+
+  get "/post/:id/prev" do |env|
+    id = env.params.url["id"].to_i64
+    search_string = env.params.query["q"]? || ""
+    fullscreen = env.params.query["fullscreen"]? || ""
+    search_param = URI.encode_www_form(search_string)
+    blacklist = env.get("blacklist").to_s
+    posts = [] of Post
+    qb = QueryBuilder.new(db, search_string, blacklist)
+    db.query qb.sql, args: qb.path_filters do |rs|
+      rs.each do
+        posts << Post.from_row(rs, indexer)
+      end
+    end
+    total_posts = posts.size
+    post_placement = posts.index { |p| p.id == id }
+    if post_placement.nil?
+      message = "Something went wrong while locating the previous post..."
+      site_title = "Error | DAVbooru"
+      back_url = "/post/#{id}?q=#{search_param}"
+      render "src/views/error.ecr", "src/views/layout.ecr"
+    else
+      prev_post = posts[Math.max(post_placement - 1, 0)]
+
+      env.redirect "/post/#{prev_post.id}?q=#{search_string}#{"&fullscreen=true" unless fullscreen.blank?}"
     end
   end
 
