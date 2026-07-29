@@ -2,9 +2,9 @@
 <div id="navigation-parent" class="bg-body-tertiary w-100 mt-2 rounded">
     <% unless !album_id.nil? && search_string.blank? %>
     <div id="search-navigation" class="d-flex align-items-center justify-content-between p-2 <%= "fw-bold" unless album_mode %>">
-        <a class="btn btn-outline-secondary btn-sm" id="prev-search-button" href="/post/<%= post.id %>/prev?q=<%= search_string %>">&lt;&lt; Prev</a>
-        <a class="text-nowrap text-truncate text-reset text-center w-50" href="/search?q=<%= search_string %>">Search: <%= search_string.blank? ? "(blank)" : search_string %></a>
-        <a class="btn btn-outline-secondary btn-sm" id="next-search-button" href="/post/<%= post.id %>/next?q=<%= search_string %>">Next &gt;&gt;</a>
+        <a class="btn btn-outline-secondary btn-sm" id="prev-search-button" href="/post/<%= post.id %>/prev?q=<%= HTML.escape(search_string) %>">&lt;&lt; Prev</a>
+        <a class="text-nowrap text-truncate text-reset text-center w-50" href="/search?q=<%= HTML.escape(search_string) %>">Search: <%= search_string.blank? ? "(blank)" : search_string %></a>
+        <a class="btn btn-outline-secondary btn-sm" id="next-search-button" href="/post/<%= post.id %>/next?q=<%= HTML.escape(search_string) %>">Next &gt;&gt;</a>
     </div>
     <% end %>
     <% unless album.nil? %>
@@ -14,7 +14,10 @@
         <% previous_post = previous_post_index < 0 ? nil : album_posts[previous_post_index]? %>
         <% next_post = album_posts[next_post_index]? %>
         <a class="btn btn-outline-secondary btn-sm <%= "invisible" if previous_post.nil? %>" id="prev-album-button" href="<%= previous_post.nil? ? "#" : "/post/#{previous_post.id}?album=#{album.id}&q=#{search_string}" %>">&lt;&lt; Prev</a>
-        <a class="text-nowrap text-truncate text-reset text-center w-50" href="/album/<%= album.id %>">Album: <%= album.name %> <small>(<%= current_post_index.not_nil! + 1 %> of <%= album_posts.size %>)</small></a>
+        <div class="d-flex align-items-center justify-content-center w-50">
+            <a class="text-nowrap text-truncate text-reset text-center px-1" href="/album/<%= album.id %>">Album: <%= album.name %></a>
+            <small class="text-nowrap pe-1">(<%= current_post_index.not_nil! + 1 %> of <%= album_posts.size %>)</small>
+        </div>
         <a class="btn btn-outline-secondary btn-sm <%= "invisible" if next_post.nil? %>" id="next-album-button" href="<%= next_post.nil? ? "#" : "/post/#{next_post.id}?album=#{album.id}&q=#{search_string}" %>">Next &gt;&gt;</a>
     </div>
     <% end %>
