@@ -243,7 +243,7 @@ module Davbooru
   end
 
   get "/search" do |env|
-    search_string = env.params.query["q"]
+    search_string = env.params.query["q"]? || ""
     search_param = URI.encode_www_form(search_string)
     blacklist = env.get("blacklist").to_s
     page = (env.params.query["p"]? || "0").to_i64
@@ -548,7 +548,7 @@ module Davbooru
 
   get "/random" do |env|
     begin
-      search_string = env.params.query["q"]
+      search_string = env.params.query["q"]? || ""
       search_param = URI.encode_www_form(search_string)
       blacklist = env.get("blacklist").to_s
       posts = [] of Post
