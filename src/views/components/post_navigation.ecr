@@ -15,7 +15,7 @@
         <% next_post = album_posts[next_post_index]? %>
         <a class="btn btn-outline-secondary btn-sm <%= "invisible" if previous_post.nil? %>" id="prev-album-button" href="<%= previous_post.nil? ? "#" : "/post/#{previous_post.id}?album=#{album.id}&q=#{search_string}" %>">&lt;&lt; Prev</a>
         <div class="d-flex align-items-center justify-content-center w-50">
-            <a class="text-nowrap text-truncate text-reset text-center px-1" href="/album/<%= album.id %>">Album: <%= album.name %></a>
+            <a class="text-nowrap text-truncate text-reset text-center px-1" href="/album/<%= album.id %>"><span class="d-none d-md-inline">Album: </span><%= album.name %></a>
             <small class="text-nowrap pe-1">(<%= current_post_index.not_nil! + 1 %> of <%= album_posts.size %>)</small>
         </div>
         <a class="btn btn-outline-secondary btn-sm <%= "invisible" if next_post.nil? %>" id="next-album-button" href="<%= next_post.nil? ? "#" : "/post/#{next_post.id}?album=#{album.id}&q=#{search_string}" %>">Next &gt;&gt;</a>
